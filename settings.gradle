@@ -9,6 +9,8 @@ pluginManagement {
 
 plugins {
     id 'com.cleanroommc.cleanroomgradle.settings' version '0.22.0'
+    // The Java 8 that reobfJar runs on is downloaded where none is installed, as on CI
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
 }
 
 include 'common'
