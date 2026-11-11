@@ -1,0 +1,22 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+      - '[0-9]+.[0-9]+.[0-9]+-*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: read
+  pull-requests: read
+
+jobs:
+  release:
+    uses: CleanroomMC/Conventions/.github/workflows/release.yml@1.4.0
+    with:
+      publish-maven: false
+      # A GitHub release only; nothing goes to CurseForge or Modrinth
+      publish-mods: false
+    secrets: inherit

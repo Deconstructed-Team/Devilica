@@ -1,0 +1,234 @@
+plugins {
+    id 'java'
+    id 'com.cleanroommc.cleanroomgradle'
+    id 'com.cleanroommc.conventions' version '1.4.0'
+}
+
+group = root_package
+
+// :common is embedded into the jar below, so it has to be configured first
+evaluationDependsOn(":common")
+
+base {
+    archivesName = mod_id
+}
+
+def accessTransformerNames = access_transformers.tokenize()
+def dependOnHei = depend_on_hei.toBoolean()
+def heiDependency = { dependOnHei ? it.requires('had-enough-items') : it.optional('had-enough-items') }
+
+conventions {
+    if (mod_authors) {
+        author = mod_authors
+    }
+    mods {
+        if (curseforge_project_id) {
+            curseforge {
+                projectId = curseforge_project_id
+                heiDependency(it)
+            }
+        }
+        if (modrinth_project_id) {
+            modrinth {
+                projectId = modrinth_project_id
+                heiDependency(it)
+            }
+        }
+    }
+}
+
+repositories {
+    exclusiveContent {
+        forRepository {
+            maven {
+                name 'CurseMaven'
+                url 'https://curse.cleanroommc.com'
+            }
+        }
+        filter {
+            includeGroup 'curse.maven'
+        }
+    }
+    exclusiveContent {
+        forRepository {
+            maven {
+                name 'CleanroomMC'
+                url 'https://maven.cleanroommc.com'
+            }
+        }
+        filter {
+            includeGroup 'mezz'
+        }
+    }
+    exclusiveContent {
+        forRepository {
+            maven {
+                name 'Modrinth'
+                url 'https://api.modrinth.com/maven'
+            }
+        }
+        filter {
+            includeGroup 'maven.modrinth'
+        }
+    }
+    exclusiveContent {
+        forRepository {
+            maven {
+                // Angelica's build of glsl-transformation-lib is published here, not on TauMC's maven
+                name 'GTNH'
+                url 'https://nexus.gtnewhorizons.com/repository/public/'
+            }
+        }
+        filter {
+            includeGroup 'org.taumc'
+        }
+    }
+    mavenCentral()
+}
+
+// Libraries Cleanroom does not ship; their classes go into the mod jar as they are
+def embedLibs = configurations.create('embed') {
+    canBeConsumed = false
+    transitive = false
+}
+configurations.implementation.extendsFrom(embedLibs)
+
+dependencies {
+    implementation cleanroom.userdev(cleanroom_version) {
+        accessTransformers.from(accessTransformerNames.collect { "src/main/resources/META-INF/$it" })
+    }
+    if (dependOnHei) {
+        implementation 'mezz:jei:4.36.1:dev'
+    } else {
+        runtimeOnly 'mezz:jei:4.36.1:dev'
+    }
+
+    implementation project(':common')
+    compileOnly 'maven.modrinth:fluidlogged-api:3.0.6'
+    compileOnly 'org.projectlombok:lombok:1.18.46'
+    annotationProcessor 'org.projectlombok:lombok:1.18.46'
+
+    // Iris: GLSL transformation, its parser runtime and the C preprocessor shader packs go through
+    embed 'org.taumc:glsl-transformation-lib:0.2.0-33.g3ec381e'
+    embed 'org.antlr:antlr4-runtime:4.13.2'
+    embed 'org.anarres:jcpp:1.4.14'
+}
+
+// Every src/main/resources/mixins.*.json is a Mixin config: the jar manifest lists them for
+// Cleanroom, and dev runs, which have no jar, get them through crl.dev.mixin.
+def mixinConfigs = fileTree('src/main/resources') { include 'mixins.*.json' }.files*.name.sort()
+
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs += ['-Xmaxerrs', '100000']
+    options.encoding = 'UTF-8'
+}
+
+cleanroom {
+    runs {
+        client {
+            configure {
+                username = minecraft_username
+                jvmArgs extra_jvm_args.tokenize()
+                jvmArgs "-Dcrl.dev.mixin=${mixinConfigs.join(',')}"
+            }
+        }
+        server {
+            configure {
+                jvmArgs extra_jvm_args.tokenize()
+            }
+        }
+    }
+}
+
+tokenEnvoy {
+    set 'MOD_VERSION', project.version
+    set 'MOD_AUTHORS', mod_authors.tokenize(',')*.trim().join('", "')
+    set file('tokens.properties')
+}
+
+def archiveOps = project.services.get(ArchiveOperations)
+
+jar {
+    // The Minecraft-independent core lives in :common and ships inside the mod jar
+    from(project(':common').sourceSets.main.output)
+    from(embedLibs.elements.map { files -> files.collect { archiveOps.zipTree(it.asFile) } }) {
+        exclude 'META-INF/MANIFEST.MF', 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA', 'module-info.class', 'META-INF/versions/**'
+    }
+    from('LICENSE') {
+        into 'licenses'
+        rename { 'devilica-lgpl-3.0.txt' }
+    }
+    from('COPYING') {
+        into 'licenses'
+        rename { 'gpl-3.0.txt' }
+    }
+    from('common/src/main/java/grondag/bitraster/LICENSE') {
+        into 'licenses'
+        rename { 'bitraster-apache-2.0.txt' }
+    }
+    manifest {
+        if (mixinConfigs) {
+            attributes 'MixinConfigs': mixinConfigs.join(',')
+        }
+        if (accessTransformerNames) {
+            attributes 'FMLAT': accessTransformerNames.join(' ')
+        }
+        if (coremod_plugin_class) {
+            attributes 'FMLCorePlugin': coremod_plugin_class
+            if (coremod_includes_mod.toBoolean()) {
+                attributes 'FMLCorePluginContainsFMLMod': true, 'ForceLoadAsMod': true
+            }
+        }
+    }
+}
+
+tasks.withType(Checkstyle).configureEach {
+    enabled = enable_checkstyle.toBoolean()
+}
+
+tasks.matching { it.name in ['clearSkiesCheck', 'formatJavaCheck'] }.configureEach {
+    enabled = enable_formatting.toBoolean()
+}
+
+// TODO: fundamental Foundation issue
+tasks.withType(JavaExec).configureEach {
+    systemProperty 'foundation.loadsall', 'true'
+}
+
+// Mixin javadoc uses @reason and @author on overwrites, which the doclet does not know
+tasks.withType(Javadoc).configureEach {
+    options.addBooleanOption('Xdoclint:none', true)
+    options.addStringOption('tag', 'reason:a:Reason:')
+    options.encoding = 'UTF-8'
+}
+
+// reobfJar renames with the MCP-to-SRG names alone, so the mixins' own members (shadows, overwrites)
+// kept their MCP names and found nothing outside the dev run. The annotation processor writes those
+// names together with the input mappings (mergeBehaviour=merge), and reobfJar renames with that.
+def reobfNames = layout.buildDirectory.file('mixin/reobf.tsrg')
+tasks.named('compileJava', JavaCompile) {
+    outputs.file(reobfNames)
+    options.compilerArgumentProviders.add({
+        ["-AoutTsrgFile=${reobfNames.get().asFile.absolutePath}".toString(), '-AmergeBehaviour=merge']
+    } as CommandLineArgumentProvider)
+}
+tasks.named('reobfJar') {
+    setMappings(files(reobfNames).builtBy(tasks.named('compileJava')))
+}
+
+// CleanMix 0.9's annotation processor writes field targets as `field_x{,1}:desc`: its quantifier
+// stopped rendering "single" as nothing. At runtime {,1} lets an injection point match only the
+// first access, so an `ordinal >= 1` field target finds nothing and the game stops at startup.
+tasks.named('compileJava', JavaCompile) { task ->
+    def refmapName = providers.gradleProperty('cg.userdev.refmap')
+    task.doLast {
+        def file = task.destinationDirectory.file(refmapName.get()).get().asFile
+        if (file.exists()) {
+            def text = file.getText('UTF-8')
+            def fixed = text.replaceAll(/\{,1\}(?=:)/, '')
+            if (fixed != text) {
+                file.setText(fixed, 'UTF-8')
+            }
+        }
+    }
+}

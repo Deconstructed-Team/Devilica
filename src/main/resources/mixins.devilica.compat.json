@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "dev.feldsher.devilica.mixin.compat",
+  "refmap": "mixins.devilica.refmap.json",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "EntityRendererLumenizedMixin",
+    "LumenizedShaderManagerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
