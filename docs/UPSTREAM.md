@@ -160,4 +160,7 @@ packs' `#version 120` code runs as written, as it did in that Angelica.
     hands back the current position as the previous one, which is not carried over.
   - `8da561d3` (#1993): `ClearPassInformation` has a `hashCode`, so colour buffers with the same clear colour and size
     are cleared together, one pass per group as the code intends; before, each buffer got passes of its own.
+  - `8da561d3`: `gbufferPreviousModelView` and `gbufferPreviousProjection` are the last frame's for every program. Each
+    program kept its own, so one not drawn every frame (entities, hand, weather) got the matrix of the last frame it
+    drew in.
 - Later non-core Iris fixes from newer Angelica are to be carried over one by one.
