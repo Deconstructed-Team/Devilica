@@ -208,7 +208,7 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 				.orElse(null);
 
 		final ProgramFallbackResolver resolver = new ProgramFallbackResolver(programs);
-		final Map<Pair<String, InputAvailability>, CompletableFuture<Map<PatchShaderType, String>>> attributeTransformFutures = submitAttributeTransforms(resolver);
+		final Map<Pair<String, InputAvailability>, CompletableFuture<Map<PatchShaderType, String>>> attributeTransformFutures = submitAttributeTransforms(programs, resolver);
 
 		final Optional<ProgramSource> terrainSource = first(programs.getGbuffersTerrain(), programs.getGbuffersTexturedLit(), programs.getGbuffersTextured(), programs.getGbuffersBasic());
 		final Optional<ProgramSource> terrainSolidOverride = programs.getGbuffersTerrainSolid();
@@ -389,37 +389,6 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 		this.compositeRenderer = new CompositeRenderer(programs.getComposite(), programs.getCompositeCompute(), flipper, compositeBuildContext, programs.getPackDirectives().getExplicitFlips("composite_pre"), compositeTransformFutures, "composite", TextureStage.COMPOSITE_AND_FINAL);
 		this.finalPassRenderer = new FinalPassRenderer(programs, compositeBuildContext, flipper.snapshot(), this.compositeRenderer.getFlippedAtLeastOnceFinal(), finalTransformFuture, "final");
 
-		// [(textured=false,lightmap=false), (textured=true,lightmap=false), (textured=true,lightmap=true)]
-		final ProgramId[] ids = new ProgramId[] {
-				ProgramId.Basic, ProgramId.Textured, ProgramId.TexturedLit,
-				ProgramId.SkyBasic, ProgramId.SkyTextured, ProgramId.SkyTextured,
-				null, null, ProgramId.Terrain,
-				null, null, ProgramId.Water,
-				null, ProgramId.Clouds, ProgramId.Clouds,
-				null, ProgramId.DamagedBlock, ProgramId.DamagedBlock,
-				ProgramId.Block, ProgramId.Block, ProgramId.Block,
-				ProgramId.BlockTrans, ProgramId.BlockTrans, ProgramId.BlockTrans,
-				ProgramId.BeaconBeam, ProgramId.BeaconBeam, ProgramId.BeaconBeam,
-				ProgramId.Entities, ProgramId.Entities, ProgramId.Entities,
-				ProgramId.EntitiesTrans, ProgramId.EntitiesTrans, ProgramId.EntitiesTrans,
-				ProgramId.Particles, ProgramId.Particles, ProgramId.Particles,
-				ProgramId.ParticlesTrans, ProgramId.ParticlesTrans, ProgramId.ParticlesTrans,
-				null, ProgramId.ArmorGlint, ProgramId.ArmorGlint,
-				null, ProgramId.SpiderEyes, ProgramId.SpiderEyes,
-				ProgramId.Hand, ProgramId.Hand, ProgramId.Hand,
-				ProgramId.HandWater, ProgramId.HandWater, ProgramId.HandWater,
-				null, null, ProgramId.Weather,
-				// world border uses textured_lit even though it has no lightmap :/
-				null, ProgramId.TexturedLit, ProgramId.TexturedLit,
-				ProgramId.Lightning, ProgramId.Lightning, ProgramId.Lightning,
-				ProgramId.ShadowWater, ProgramId.ShadowWater, ProgramId.ShadowWater,
-				ProgramId.Shadow, ProgramId.Shadow, ProgramId.Shadow
-		};
-
-		if (ids.length != RenderCondition.values().length * 3) {
-			throw new IllegalStateException("Program ID table length mismatch");
-		}
-
 		this.attributeTransforms = new HashMap<>();
 		for (Map.Entry<Pair<String, InputAvailability>, CompletableFuture<Map<PatchShaderType, String>>> entry : attributeTransformFutures.entrySet()) {
 			try {
@@ -435,25 +404,9 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 		this.shadowComputes = createShadowComputes(programs.getShadowCompute());
 
 		this.table = new ProgramTable<>((condition, availability) -> {
-			final int idx;
+			final ProgramId finalId = programFor(programs, condition, availability);
 
-			if (availability.texture && availability.lightmap) {
-				idx = 2;
-			} else if (availability.texture) {
-				idx = 1;
-			} else {
-				idx = 0;
-			}
-
-			ProgramId id = ownProgramOrBefore(programs, ids[condition.ordinal() * 3 + idx]);
-
-			if (id == null) {
-				id = ids[idx];
-			}
-
-			final ProgramId finalId = id;
-
-			return cachedPasses.computeIfAbsent(Pair.of(id, availability), p -> {
+			return cachedPasses.computeIfAbsent(Pair.of(finalId, availability), p -> {
 				final ProgramSource source = resolver.resolveNullable(p.getLeft());
 
 				if (condition == RenderCondition.SHADOW || condition == RenderCondition.SHADOW_TRANSLUCENT) {
@@ -816,6 +769,45 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 		if (phase == WorldRenderingPhase.ENTITIES || phase == WorldRenderingPhase.BLOCK_ENTITIES) {
 			matchPass();
 		}
+	}
+
+	// [(textured=false,lightmap=false), (textured=true,lightmap=false), (textured=true,lightmap=true)]
+	private static final ProgramId[] PROGRAM_IDS = {
+			ProgramId.Basic, ProgramId.Textured, ProgramId.TexturedLit,
+			ProgramId.SkyBasic, ProgramId.SkyTextured, ProgramId.SkyTextured,
+			null, null, ProgramId.Terrain,
+			null, null, ProgramId.Water,
+			null, ProgramId.Clouds, ProgramId.Clouds,
+			null, ProgramId.DamagedBlock, ProgramId.DamagedBlock,
+			ProgramId.Block, ProgramId.Block, ProgramId.Block,
+			ProgramId.BlockTrans, ProgramId.BlockTrans, ProgramId.BlockTrans,
+			ProgramId.BeaconBeam, ProgramId.BeaconBeam, ProgramId.BeaconBeam,
+			ProgramId.Entities, ProgramId.Entities, ProgramId.Entities,
+			ProgramId.EntitiesTrans, ProgramId.EntitiesTrans, ProgramId.EntitiesTrans,
+			ProgramId.Particles, ProgramId.Particles, ProgramId.Particles,
+			ProgramId.ParticlesTrans, ProgramId.ParticlesTrans, ProgramId.ParticlesTrans,
+			null, ProgramId.ArmorGlint, ProgramId.ArmorGlint,
+			null, ProgramId.SpiderEyes, ProgramId.SpiderEyes,
+			ProgramId.Hand, ProgramId.Hand, ProgramId.Hand,
+			ProgramId.HandWater, ProgramId.HandWater, ProgramId.HandWater,
+			null, null, ProgramId.Weather,
+			// world border uses textured_lit even though it has no lightmap :/
+			null, ProgramId.TexturedLit, ProgramId.TexturedLit,
+			ProgramId.Lightning, ProgramId.Lightning, ProgramId.Lightning,
+			ProgramId.ShadowWater, ProgramId.ShadowWater, ProgramId.ShadowWater,
+			ProgramId.Shadow, ProgramId.Shadow, ProgramId.Shadow
+	};
+
+	static {
+		if (PROGRAM_IDS.length != RenderCondition.values().length * 3) {
+			throw new IllegalStateException("Program ID table length mismatch");
+		}
+	}
+
+	private static ProgramId programFor(ProgramSet programs, RenderCondition condition, InputAvailability availability) {
+		final int idx = availability.texture && availability.lightmap ? 2 : availability.texture ? 1 : 0;
+		final ProgramId id = ownProgramOrBefore(programs, PROGRAM_IDS[condition.ordinal() * 3 + idx]);
+		return id != null ? id : PROGRAM_IDS[idx];
 	}
 
 	private final Runnable blendWatcher = this::gameBlendChanged;
@@ -1787,20 +1779,16 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 	}
 
 	private static Map<Pair<String, InputAvailability>, CompletableFuture<Map<PatchShaderType, String>>>
-			submitAttributeTransforms(ProgramFallbackResolver resolver) {
+			submitAttributeTransforms(ProgramSet programs, ProgramFallbackResolver resolver) {
+		// Devilica: what the program table will ask for and no more. The base transformed every source for three
+		// input sets, used or not, and left the fourth (a lightmap without a texture) to the render thread
 		final Map<Pair<String, InputAvailability>, CompletableFuture<Map<PatchShaderType, String>>> futures = new HashMap<>();
-		final Set<String> processedSourceNames = new HashSet<>();
-		for (ProgramId id : ProgramId.values()) {
-			// Devilica: nothing draws with gbuffers_line here, lines keep the pass of their phase
-			if (id == ProgramId.Line) {
-				continue;
-			}
-			ProgramSource source = resolver.resolveNullable(id);
-			if (source != null && !processedSourceNames.contains(source.getName())) {
-				processedSourceNames.add(source.getName());
-				for (InputAvailability avail : INPUT_AVAILABILITIES) {
-					Pair<String, InputAvailability> key = Pair.of(source.getName(), avail);
-					futures.put(key, Iris.ShaderTransformExecutor.submitTracked(() -> TransformPatcher.patchAttributes(source.getVertexSource().orElse(null), source.getGeometrySource().orElse(null), source.getTessControlSource().orElse(null), source.getTessEvalSource().orElse(null), source.getFragmentSource().orElse(null), avail)));
+		for (RenderCondition condition : RenderCondition.values()) {
+			for (int packed = 0; packed < 4; packed++) {
+				final InputAvailability avail = InputAvailability.unpack(packed);
+				final ProgramSource source = resolver.resolveNullable(programFor(programs, condition, avail));
+				if (source != null) {
+					futures.computeIfAbsent(Pair.of(source.getName(), avail), key -> Iris.ShaderTransformExecutor.submitTracked(() -> TransformPatcher.patchAttributes(source.getVertexSource().orElse(null), source.getGeometrySource().orElse(null), source.getTessControlSource().orElse(null), source.getTessEvalSource().orElse(null), source.getFragmentSource().orElse(null), avail)));
 				}
 			}
 		}
