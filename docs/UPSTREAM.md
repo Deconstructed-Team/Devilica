@@ -112,4 +112,8 @@ packs' `#version 120` code runs as written, as it did in that Angelica.
   that leaves the depth buffer alone (`Particle.shouldDisableDepth`), not Angelica's split by particle; the death beams
   are not drawn a second time for depth. Not carried over: `gbuffers_block_translucent`, which needs the pass matched
   again on blend changes, and `gbuffers_terrain_cutout_mip`, which Angelica dropped.
+- Carried over from newer Angelica, second round:
+  - `ffb4ca94` (#1612): `atlasSize`, `gtextureSize` and `blendFunc` no longer allocate a vector on every texture bind
+    and blend change; the integer vector uniforms copy the value they are handed. The suppliers' types stay as they
+    were, Angelica's move to JOML's read-only interfaces is not carried over.
 - Later non-core Iris fixes from newer Angelica are to be carried over one by one.
