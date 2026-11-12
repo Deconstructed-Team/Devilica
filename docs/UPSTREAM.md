@@ -78,4 +78,13 @@ packs' `#version 120` code runs as written, as it did in that Angelica.
 - Uniforms updated once a tick go by the total world time; `relativeEyePosition` is the camera as seen from the eye,
   the eye interpolated; `RenderTargets.resizeIfNeeded` re-attaches depth when the depth texture itself changed (render
   scale hands it two framebuffers); the alpha test is back on after the final pass.
+- Program files newer Iris reads, from newer Angelica: `gbuffers_lightning` (#1787: the bolt and the dying dragon's
+  beams, which are the entity `dragon_death_rays` to packs that name it, #1836), `shadow_water` (#1628),
+  `gbuffers_particles` and `gbuffers_particles_translucent` (from #2017), and `gbuffers_terrain_solid`,
+  `gbuffers_terrain_cutout`, `shadow_solid`, `shadow_cutout` for Celeritas's passes. A pack that ships none of them draws
+  as before: their draws keep the pass they had (Celeritas's translucent shadow layer its program), where Angelica builds
+  one from the fallback's source and sends lightning to `gbuffers_entities`. Translucent particles are vanilla's queue
+  that leaves the depth buffer alone (`Particle.shouldDisableDepth`), not Angelica's split by particle; the death beams
+  are not drawn a second time for depth. Not carried over: `gbuffers_block_translucent`, which needs the pass matched
+  again on blend changes, and `gbuffers_terrain_cutout_mip`, which Angelica dropped.
 - Later non-core Iris fixes from newer Angelica are to be carried over one by one.
