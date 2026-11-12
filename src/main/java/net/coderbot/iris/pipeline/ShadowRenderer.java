@@ -649,6 +649,17 @@ public class ShadowRenderer {
 	}
 
 	public void renderShadows(EntityRenderer levelRenderer, Camera playerCamera) {
+		// Devilica: a shadow pass that throws must not leave the game in it, since the game can survive a crash in a
+		// world; everything drawn after would have gone the shadow pass's way
+		try {
+			renderShadowPass(levelRenderer, playerCamera);
+		} finally {
+			ACTIVE = false;
+			CURRENT_TARGETS = null;
+		}
+	}
+
+	private void renderShadowPass(EntityRenderer levelRenderer, Camera playerCamera) {
         final Minecraft mc = Minecraft.getMinecraft();
         final RenderGlobal rg = mc.renderGlobal;
 
@@ -762,6 +773,12 @@ public class ShadowRenderer {
 		// it is set to a fixed value.
 		final float tickDelta = CapturedRenderingState.INSTANCE.getTickDelta();
 
+		// Devilica: the game sets up its view of entities and block entities in the world's entity pass, which comes
+		// after this one; newer Angelica sets it up here too. On the first frame after joining a world the view was
+		// empty, and another player's name tag crashed on it.
+		TileEntityRendererDispatcher.instance.prepare(getLevel(), mc.renderEngine, mc.fontRenderer, mc.getRenderViewEntity(), mc.objectMouseOver, tickDelta);
+		mc.getRenderManager().cacheActiveRenderInfo(getLevel(), mc.fontRenderer, mc.getRenderViewEntity(), mc.pointedEntity, mc.gameSettings, tickDelta);
+
 		// Create a constrained shadow frustum for entities to avoid rendering faraway entities in the shadow pass,
 		// if the shader pack has requested it. Otherwise, use the same frustum as for terrain.
 		boolean hasEntityFrustum = false;
@@ -834,8 +851,6 @@ public class ShadowRenderer {
 
 		if (compositeRenderer != null) compositeRenderer.renderAll();
 
-		ACTIVE = false;
-		CURRENT_TARGETS = null;
 		profiler.endSection();
 		profiler.endStartSection("updatechunks");
 	}

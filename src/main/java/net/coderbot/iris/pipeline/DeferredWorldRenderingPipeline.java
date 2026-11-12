@@ -1445,7 +1445,10 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 		}
 
 		if (current != null) {
-			throw new IllegalStateException("Called beginLevelRendering but level rendering appears to still be in progress?");
+			// Devilica: a frame that threw midway left its pass bound; the game can survive a crash in a world, and
+			// this threw on every frame after it
+			Iris.logger.warn("The last frame's level rendering did not finish; ending its pass");
+			beginPass(null);
 		}
 
 		updateNotifier.onNewFrame();

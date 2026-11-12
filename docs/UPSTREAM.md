@@ -59,4 +59,7 @@ packs' `#version 120` code runs as written, as it did in that Angelica.
   shadow pass joins the last frame's search before it sets the terrain frustum anew, and terrain and entities
   keep frustums of their own (the entity one was set to the entity shadow distance while the search still
   read it, and casters dropped out of the shadow map for a frame).
+- The shadow pass sets up the entity and block entity view before it draws them (from newer Angelica; on the
+  first frame in a world another player's name tag crashed), clears its flags in a `finally`, and a frame left
+  unfinished by a crash is ended at the next `beginLevelRendering` instead of throwing on every frame after.
 - Later non-core Iris fixes from newer Angelica are to be carried over one by one.
