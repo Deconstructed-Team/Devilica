@@ -78,4 +78,15 @@ packs' `#version 120` code runs as written, as it did in that Angelica.
 - Uniforms updated once a tick go by the total world time; `relativeEyePosition` is the camera as seen from the eye,
   the eye interpolated; `RenderTargets.resizeIfNeeded` re-attaches depth when the depth texture itself changed (render
   scale hands it two framebuffers); the alpha test is back on after the final pass.
+- Carried over from newer Angelica: `a5d31cd1` and `117ff0ca` (uniforms that follow the phase, the bound texture, the
+  blend function and fog; the notifiers are raised from Devilica's own state hooks), `1991dc58` (boolean expressions in
+  `program.<name>.enabled`), `29f8d718` and `c7a0f3a2` (raw custom textures renamed to the pack's samplers, linear and
+  clamped by default), `5ae4ab8c` (the built-in noise texture's filter), `cbd16b1a` (the shadow pass's lightmap
+  input), `6f054a09` (PBR atlases released with the pack), the hand passes of `22c94799` (a held block's own layer,
+  `finally`), `d1e6dc8c` (`markShadowGraphDirty`; here the camera's list is searched again while its build queue
+  overflows).
+- Forge's `RenderHandEvent` is posted once a frame, in the pack's solid hand pass under the hand's matrices; vanilla's
+  `renderHand` does not post it again.
+- Transformed shader sources are kept on disk (`cache/devilica/shaders`, `TransformDiskCache`), keyed by source,
+  parameters, build and GL; `-Ddevilica.shaderDiskCache=false` turns it off.
 - Later non-core Iris fixes from newer Angelica are to be carried over one by one.

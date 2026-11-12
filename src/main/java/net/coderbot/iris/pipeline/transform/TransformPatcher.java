@@ -1,5 +1,6 @@
 package net.coderbot.iris.pipeline.transform;
 
+import dev.feldsher.devilica.shaders.TransformDiskCache;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import net.coderbot.iris.gbuffer_overrides.matching.InputAvailability;
 import net.coderbot.iris.gl.texture.TextureType;
@@ -87,7 +88,12 @@ public class TransformPatcher {
 
         // if there is no cache result, transform the shaders
         if (result == null) {
-            result = ShaderTransformer.transform(vertex, geometry, tessControl, tessEval, fragment, parameters);
+            // Devilica: unless an earlier run has left the result on disk
+            result = TransformDiskCache.load(parameters, vertex, geometry, tessControl, tessEval, fragment);
+            if (result == null) {
+                result = ShaderTransformer.transform(vertex, geometry, tessControl, tessEval, fragment, parameters);
+                TransformDiskCache.store(parameters, vertex, geometry, tessControl, tessEval, fragment, result);
+            }
             if (useCache) {
                 synchronized (cache) {
                     // Double-check in case another thread added it while we were transforming

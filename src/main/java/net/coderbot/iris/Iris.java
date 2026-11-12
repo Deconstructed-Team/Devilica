@@ -3,6 +3,7 @@ package net.coderbot.iris;
 import com.google.common.base.Throwables;
 import dev.feldsher.devilica.Devilica;
 import com.gtnewhorizons.angelica.config.AngelicaConfig;
+import dev.feldsher.devilica.shaders.TransformDiskCache;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.InputEvent;
@@ -379,6 +380,7 @@ public class Iris {
 
         // Initialize version hoisting pattern based on GL capabilities
         ShaderTransformer.init();
+        TransformDiskCache.init();
 
         PBRTextureManager.INSTANCE.init();
 
@@ -804,7 +806,7 @@ public class Iris {
             long startTime = System.nanoTime();
             WorldRenderingPipeline pipeline = new DeferredWorldRenderingPipeline(programs);
             long endTime = System.nanoTime();
-            logger.info("[Load #{}] Total shaderpack load time for '{}' in dimension '{}': {} ms", shaderPackLoadId, currentPackName, dimensionName, String.format("%.1f", (endTime - startTime) / 1_000_000.0));
+            logger.info("[Load #{}] Total shaderpack load time for '{}' in dimension '{}': {} ms ({})", shaderPackLoadId, currentPackName, dimensionName, String.format("%.1f", (endTime - startTime) / 1_000_000.0), TransformDiskCache.report());
             return pipeline;
         } catch (Exception e) {
             logger.error("Failed to create shader rendering pipeline, disabling shaders!", e);
