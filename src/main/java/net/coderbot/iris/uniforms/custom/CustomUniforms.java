@@ -1,6 +1,7 @@
 package net.coderbot.iris.uniforms.custom;
 
 import com.google.common.collect.ImmutableMap;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap;
@@ -24,6 +25,7 @@ import net.coderbot.iris.parsing.VectorType;
 import net.coderbot.iris.uniforms.custom.cached.CachedUniform;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
@@ -37,8 +39,24 @@ public class CustomUniforms implements FunctionContext {
 	private final Map<String, Expression> variablesExpressions = new Object2ObjectLinkedOpenHashMap<>();
 	private final CustomUniformFixedInputUniformsHolder inputHolder;
 	private final List<CachedUniform> uniformOrder;
-	private final Map<Object, Object2IntMap<CachedUniform>> locationMap = new Object2ObjectOpenHashMap<>();
+	private final Map<Object, PassUniforms> locationMap = new Object2ObjectOpenHashMap<>();
 	private final Map<CachedUniform, List<CachedUniform>> dependsOn;
+	private int generation;
+
+	/** A program's custom uniforms, and what it was last handed: values only change in {@link #update()}. */
+	private static final class PassUniforms {
+		final CachedUniform[] uniforms;
+		final int[] locations;
+		final int[] pushedValueGen;
+		int pushedGeneration = -1;
+
+		PassUniforms(CachedUniform[] uniforms, int[] locations) {
+			this.uniforms = uniforms;
+			this.locations = locations;
+			this.pushedValueGen = new int[uniforms.length];
+			Arrays.fill(pushedValueGen, -1);
+		}
+	}
 
 	private CustomUniforms(CustomUniformFixedInputUniformsHolder inputHolder, Map<String, Builder.Variable> variables) {
 		this.inputHolder = inputHolder;
@@ -187,18 +205,20 @@ public class CustomUniforms implements FunctionContext {
 	}
 
 	public void assignTo(LocationalUniformHolder targetHolder) {
-		Object2IntMap<CachedUniform> locations = new Object2IntOpenHashMap<>();
+		final List<CachedUniform> uniforms = new ObjectArrayList<>();
+		final IntArrayList locations = new IntArrayList();
 		for (CachedUniform uniform : this.uniformOrder) {
 			try {
 				OptionalInt location = targetHolder.location(uniform.getName(), Type.convert(uniform.getType()));
 				if (location.isPresent()) {
-					locations.put(uniform, location.getAsInt());
+					uniforms.add(uniform);
+					locations.add(location.getAsInt());
 				}
 			} catch (Exception e) {
 				throw new RuntimeException(uniform.getName(), e);
 			}
 		}
-		this.locationMap.put(targetHolder, locations);
+		this.locationMap.put(targetHolder, new PassUniforms(uniforms.toArray(new CachedUniform[0]), locations.toIntArray()));
 	}
 
 	public void mapholderToPass(LocationalUniformHolder holder, Object pass) {
@@ -207,15 +227,27 @@ public class CustomUniforms implements FunctionContext {
 
 
 	public void update() {
+		generation++;
 		for (CachedUniform value : this.uniformOrder) {
 			value.update();
 		}
 	}
 
 	public void push(Object pass) {
-		Object2IntMap<CachedUniform> uniforms = this.locationMap.get(pass);
-		if (uniforms != null) {
-			uniforms.forEach(CachedUniform::pushIfChanged);
+		final PassUniforms pu = this.locationMap.get(pass);
+		if (pu == null || pu.pushedGeneration == generation) {
+			return;
+		}
+		pu.pushedGeneration = generation;
+
+		final CachedUniform[] uniforms = pu.uniforms;
+		final int[] gens = pu.pushedValueGen;
+		for (int i = 0; i < uniforms.length; i++) {
+			final int gen = uniforms[i].valueGen();
+			if (gens[i] != gen) {
+				uniforms[i].push(pu.locations[i]);
+				gens[i] = gen;
+			}
 		}
 	}
 
@@ -251,8 +283,8 @@ public class CustomUniforms implements FunctionContext {
 
 		// Count the times a pass depends on a uniform
 		// ensures they wont ever be removed
-		for (Object2IntMap<CachedUniform> map : this.locationMap.values()) {
-			for (CachedUniform cachedUniform : map.keySet()) {
+		for (PassUniforms pu : this.locationMap.values()) {
+			for (CachedUniform cachedUniform : pu.uniforms) {
 				dependedByCount.mergeInt(cachedUniform, 1, Integer::sum);
 			}
 		}

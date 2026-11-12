@@ -168,4 +168,7 @@ packs' `#version 120` code runs as written, as it did in that Angelica.
     a `finally` too.
   - `8da561d3`: compute shaders count as supported on any OpenGL 4.3 context, not only where the driver lists
     `GL_ARB_compute_shader`.
+  - `8da561d3`: a program's custom uniforms (`uniform.<type>.<name>`) are uploaded when their value changed since that
+    program last got them, once a frame at most; before, all of them on every bind of the program. Angelica keeps the
+    pushed generation in a map by pass, here it is on the pass's own entry.
 - Later non-core Iris fixes from newer Angelica are to be carried over one by one.
