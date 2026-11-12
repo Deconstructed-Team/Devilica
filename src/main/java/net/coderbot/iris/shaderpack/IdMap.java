@@ -3,6 +3,7 @@ package net.coderbot.iris.shaderpack;
 import com.gtnewhorizons.angelica.config.AngelicaConfig;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
+import it.unimi.dsi.fastutil.ints.Int2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2IntFunction;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
@@ -368,7 +369,8 @@ public class IdMap {
 	}
 
 	private static Int2ObjectMap<List<BlockEntry>> parseBlockMap(Properties properties, String keyPrefix, String fileName) {
-		Int2ObjectMap<List<BlockEntry>> entriesById = new Int2ObjectOpenHashMap<>();
+		// Devilica: in the file's order, the first entry to match a block gives its ID
+		Int2ObjectMap<List<BlockEntry>> entriesById = new Int2ObjectLinkedOpenHashMap<>();
 
 		properties.forEach((keyObject, valueObject) -> {
 			final String key = (String) keyObject;
@@ -395,7 +397,7 @@ public class IdMap {
 				List<ItemStack> leaves = OreDictionary.getOres("treeLeaves");
 				for (ItemStack leaf : leaves) {
 					if (leaf.getItem() instanceof ItemBlock) {
-						Iris.logger.warn("Found leaf " + leaf.getItem().getRegistryName());
+						Iris.logger.debug("Found leaf {}", leaf.getItem().getRegistryName());
 						value.append(" ").append(leaf.getItem().getRegistryName());
 					}
 				}
