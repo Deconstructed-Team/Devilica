@@ -17,6 +17,7 @@ import net.coderbot.iris.shaderpack.texture.TextureStage;
 import net.coderbot.iris.uniforms.FrameUpdateNotifier;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.EntityRenderer;
+import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL20;
 
 import java.util.List;
@@ -75,6 +76,11 @@ public class FixedFunctionWorldRenderingPipeline implements WorldRenderingPipeli
 
 	@Override
 	public void setSpecialCondition(SpecialCondition special) {
+
+	}
+
+	@Override
+	public void setDeclaredTranslucency(@Nullable Boolean translucent) {
 
 	}
 

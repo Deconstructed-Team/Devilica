@@ -399,6 +399,8 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 				ProgramId.BeaconBeam, ProgramId.BeaconBeam, ProgramId.BeaconBeam,
 				ProgramId.Entities, ProgramId.Entities, ProgramId.Entities,
 				ProgramId.EntitiesTrans, ProgramId.EntitiesTrans, ProgramId.EntitiesTrans,
+				ProgramId.Particles, ProgramId.Particles, ProgramId.Particles,
+				ProgramId.ParticlesTrans, ProgramId.ParticlesTrans, ProgramId.ParticlesTrans,
 				null, ProgramId.ArmorGlint, ProgramId.ArmorGlint,
 				null, ProgramId.SpiderEyes, ProgramId.SpiderEyes,
 				ProgramId.Hand, ProgramId.Hand, ProgramId.Hand,
@@ -748,8 +750,10 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 		}
 
 		switch (phase) {
-			case NONE, OUTLINE, DEBUG, PARTICLES:
+			case NONE, OUTLINE, DEBUG:
 				return RenderCondition.DEFAULT;
+			case PARTICLES:
+				return isTranslucentDraw() ? RenderCondition.PARTICLES_TRANSLUCENT : RenderCondition.PARTICLES;
 			case SKY, SUNSET, CUSTOM_SKY, SUN, MOON, STARS, VOID:
 				return RenderCondition.SKY;
 			case TERRAIN_SOLID, TERRAIN_CUTOUT, TERRAIN_CUTOUT_MIPPED:
@@ -785,6 +789,13 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 		}
 	}
 
+	// Devilica: only vanilla's particle queues declare (ParticleManagerShadersMixin). Angelica asks the blend state when
+	// nothing is declared, but vanilla 1.12.2 draws every particle with blending on, and nothing matches the pass
+	// again when blending changes
+	private boolean isTranslucentDraw() {
+		return declaredTranslucent != null && declaredTranslucent;
+	}
+
 	/**
 	 * Devilica: a program carried over from newer Angelica that the pack does not ship gets no pass of its own built
 	 * from its fallback's source. Its row takes the pass its draws had before the program was read (null is the default
@@ -792,7 +803,13 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 	 */
 	@Nullable
 	private static ProgramId ownProgramOrBefore(ProgramSet programs, @Nullable ProgramId id) {
-		if (id == ProgramId.Lightning && programs.getGbuffersLightning().isEmpty()) {
+		if (id == ProgramId.ParticlesTrans && programs.getGbuffersParticlesTrans().isEmpty()) {
+			id = ProgramId.Particles;
+		}
+
+		if (id == ProgramId.Particles && programs.getGbuffersParticles().isEmpty()) {
+			return null;
+		} else if (id == ProgramId.Lightning && programs.getGbuffersLightning().isEmpty()) {
 			return null;
 		} else if (id == ProgramId.ShadowWater && programs.getShadowWater().isEmpty()) {
 			return ProgramId.Shadow;
@@ -1517,6 +1534,7 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 		isRenderingFullScreenPass = false;
 		phase = WorldRenderingPhase.NONE;
 		overridePhase = null;
+		declaredTranslucent = null;
 	}
 
 	@Override
@@ -1656,6 +1674,15 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 		this.special = special;
 		matchPass();
 	}
+
+	@Override
+	public void setDeclaredTranslucency(@Nullable Boolean translucent) {
+		this.declaredTranslucent = translucent;
+		matchPass();
+	}
+
+	@Nullable
+	private Boolean declaredTranslucent;
 
 	@Override
 	public RenderTargetStateListener getRenderTargetStateListener() {

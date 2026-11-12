@@ -212,6 +212,18 @@ public final class ShaderHooks {
         }
     }
 
+    /**
+     * Vanilla draws particles in two queues for each texture: those that leave the depth buffer alone
+     * ({@code Particle.shouldDisableDepth}: spells, fireworks, end rods), then the rest. The first are the translucent
+     * particles of later versions, with a program of their own in shader packs.
+     */
+    public static void particleQueue(boolean translucent) {
+        final WorldRenderingPipeline pipeline = pipeline();
+        if (pipeline != null) {
+            pipeline.setDeclaredTranslucency(translucent);
+        }
+    }
+
     /** The enchantment glint is drawn without the item's ID, so packs treat it as glint and not as the item. */
     public static void beginGlint() {
         if (Iris.enabled) {

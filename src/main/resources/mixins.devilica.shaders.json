@@ -28,6 +28,7 @@
     "MinecraftRenderScaleMixin",
     "OpenGlHelperMixin",
     "ParticleItemPickupMixin",
+    "ParticleManagerShadersMixin",
     "RenderDragonMixin",
     "RenderEntityItemMixin",
     "RenderGlobalShadersMixin",
