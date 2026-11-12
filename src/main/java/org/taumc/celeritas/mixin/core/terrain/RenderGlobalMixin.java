@@ -65,6 +65,13 @@ public abstract class RenderGlobalMixin implements SimpleWorldRenderer.Provider<
         return 0;
     }
 
+    // Vanilla's dispatcher is never given work, yet it sets aside 10 MB of buffers per builder, up to 30% of the
+    // heap: over a gigabyte with a 5 GB heap and 12 cores.
+    @Redirect(method = "loadRenderers", at = @At(value = "NEW", target = "()Lnet/minecraft/client/renderer/chunk/ChunkRenderDispatcher;"))
+    private ChunkRenderDispatcher oneIdleBuilder() {
+        return new ChunkRenderDispatcher(1);
+    }
+
     @Inject(method = "<init>", at = @At("RETURN"))
     private void init(Minecraft minecraft, CallbackInfo ci) {
         this.renderer = new CeleritasWorldRenderer();
@@ -217,8 +224,8 @@ public abstract class RenderGlobalMixin implements SimpleWorldRenderer.Provider<
         } finally {
             BlockEntityBatcher.end();
             BlockEntityPasses.end();
+            ShaderHooks.endBlockEntities();
         }
-        ShaderHooks.endBlockEntities();
         this.mc.entityRenderer.disableLightmap();
         this.mc.profiler.endSection();
         ci.cancel();
