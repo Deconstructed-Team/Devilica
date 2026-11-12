@@ -178,6 +178,10 @@ public class VintageRenderSectionManager extends RenderSectionManager {
      * passes the pack covers.
      */
     private static class ChunkRenderer extends DefaultChunkRenderer {
+        // Devilica: the shadow pass's batches, kept apart from the camera's. With one key the two passes threw away
+        // each other's cached batch of every sorted layer twice a frame.
+        private static final Object SHADOW_VIEW = new Object();
+
         private GlProgram<? extends ChunkShaderInterface> irisProgram;
 
         public ChunkRenderer(RenderDevice device, RenderPassConfiguration<?> renderPassConfiguration) {
@@ -187,6 +191,11 @@ public class VintageRenderSectionManager extends RenderSectionManager {
             if (provider != null) {
                 provider.setRenderPassConfiguration(renderPassConfiguration);
             }
+        }
+
+        @Override
+        protected Object getRenderView() {
+            return IrisShaderProviderHolder.isShadowPass() ? SHADOW_VIEW : DEFAULT_VIEW;
         }
 
         @Override

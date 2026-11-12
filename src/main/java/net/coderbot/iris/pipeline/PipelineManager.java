@@ -16,21 +16,36 @@ import java.util.function.Function;
 public class PipelineManager {
 
 	private final Function<String, WorldRenderingPipeline> pipelineFactory;
+	// Devilica: what tells one dimension's pipeline from another's, the pack's set of programs for it
+	private final Function<String, Object> programsOf;
+	private Object lastPreparedPrograms = null;
 	private final Map<String, WorldRenderingPipeline> pipelinesPerDimension = new HashMap<>();
 	private WorldRenderingPipeline pipeline = new FixedFunctionWorldRenderingPipeline();
 	private String lastPreparedDimension = null;
     @Getter
 	private int versionCounterForSodiumShaderReload = 0;
 
-	public PipelineManager(Function<String, WorldRenderingPipeline> pipelineFactory) {
+	public PipelineManager(Function<String, WorldRenderingPipeline> pipelineFactory, Function<String, Object> programsOf) {
 		this.pipelineFactory = pipelineFactory;
+		this.programsOf = programsOf;
 	}
 
 	public WorldRenderingPipeline preparePipeline(String currentDimension) {
 		// Detect dimension change and do full teardown/recreation
 		if (lastPreparedDimension != null && !lastPreparedDimension.equals(currentDimension)) {
-			Iris.logger.info("Dimension changed from '{}' to '{}', reloading pipeline", lastPreparedDimension, currentDimension);
-			destroyPipeline();
+			// Devilica: unless the pack draws both with the same programs, as most do for the overworld and every
+			// dimension mods add. The pipeline reads the world as it draws, so it serves the new one as it is, and
+			// the trip does not wait several seconds for the same programs to compile again.
+			final Object programs = this.programsOf.apply(currentDimension);
+			final WorldRenderingPipeline kept = pipelinesPerDimension.get(lastPreparedDimension);
+			if (programs != null && programs == lastPreparedPrograms && kept != null && pipelinesPerDimension.size() == 1) {
+				Iris.logger.info("Dimension changed from '{}' to '{}', same programs: keeping the pipeline", lastPreparedDimension, currentDimension);
+				pipelinesPerDimension.clear();
+				pipelinesPerDimension.put(currentDimension, kept);
+			} else {
+				Iris.logger.info("Dimension changed from '{}' to '{}', reloading pipeline", lastPreparedDimension, currentDimension);
+				destroyPipeline();
+			}
 		}
 		lastPreparedDimension = currentDimension;
 
@@ -41,6 +56,7 @@ public class PipelineManager {
 			Iris.logger.info("Creating pipeline for dimension '{}'", currentDimension);
 			pipeline = pipelineFactory.apply(currentDimension);
 			pipelinesPerDimension.put(currentDimension, pipeline);
+			lastPreparedPrograms = this.programsOf.apply(currentDimension);
 		} else {
 			pipeline = pipelinesPerDimension.get(currentDimension);
 		}
@@ -79,6 +95,7 @@ public class PipelineManager {
 		pipelinesPerDimension.clear();
 		pipeline = null;
 		lastPreparedDimension = null;
+		lastPreparedPrograms = null;
 		versionCounterForSodiumShaderReload++;
 	}
 

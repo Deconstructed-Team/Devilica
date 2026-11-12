@@ -817,7 +817,8 @@ public class Iris {
     @NotNull
     public static PipelineManager getPipelineManager() {
         if (pipelineManager == null) {
-            pipelineManager = new PipelineManager(Iris::createPipeline);
+            pipelineManager = new PipelineManager(Iris::createPipeline,
+                dimensionName -> currentPack != null && !fallback ? currentPack.getProgramSet(dimensionName) : null);
         }
 
         return pipelineManager;
