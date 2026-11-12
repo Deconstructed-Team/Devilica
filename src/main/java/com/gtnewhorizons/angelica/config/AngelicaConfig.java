@@ -23,6 +23,10 @@ public final class AngelicaConfig {
     @Config.Comment("Register Iris's hardcoded custom uniforms. May help some shader packs")
     public static boolean enableHardcodedCustomUniforms = false;
 
+    @Config.Comment("The MC_VERSION a shader pack's block, item and entity properties are read with when its block.properties has no section for 1.12.2 and names blocks as 1.13+ does. 0 = default (260101)")
+    @Config.RangeInt(min = 0)
+    public static int modernFallbackMcVersion = 0;
+
     @Config.Comment("Dump PBR atlases for debugging")
     public static boolean enablePBRDebug = false;
 

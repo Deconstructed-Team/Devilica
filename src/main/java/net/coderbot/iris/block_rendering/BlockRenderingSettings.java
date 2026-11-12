@@ -4,7 +4,10 @@ import net.minecraft.util.BlockRenderLayer;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntFunction;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectMap;
+import it.unimi.dsi.fastutil.objects.ReferenceSet;
+import it.unimi.dsi.fastutil.objects.ReferenceSets;
 import lombok.Getter;
+import lombok.Setter;
 import net.coderbot.iris.shaderpack.materialmap.NamespacedId;
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
@@ -25,6 +28,10 @@ public class BlockRenderingSettings {
 	private boolean disableDirectionalShading;
 	private boolean useSeparateAo;
 	private boolean useExtendedVertexFormat;
+	// Devilica: the blocks whose metadata key takes BlockMaterialMapping.SNOWY_META_BIT when snow lies on them
+	@Getter
+	@Setter
+	private ReferenceSet<Block> snowyBlocks = ReferenceSets.emptySet();
 
 	public BlockRenderingSettings() {
 		reloadRequired = false;
