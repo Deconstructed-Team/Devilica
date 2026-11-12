@@ -9,7 +9,7 @@ import com.gtnewhorizons.angelica.glsm.texture.TextureInfoCache;
 import com.gtnewhorizons.angelica.glsm.texture.TextureTracker;
 import com.gtnewhorizons.angelica.mixins.interfaces.EntityRendererAccessor;
 import net.coderbot.iris.gl.state.FogMode;
-import net.coderbot.iris.gl.state.ValueUpdateNotifier;
+import net.coderbot.iris.gl.state.StateUpdateNotifiers;
 import net.coderbot.iris.gl.uniform.DynamicUniformHolder;
 import net.coderbot.iris.gl.uniform.UniformHolder;
 import net.coderbot.iris.layer.GbufferPrograms;
@@ -82,7 +82,7 @@ public final class CommonUniforms {
 			}
 
 			return ZERO_VECTOR_2i;
-		}, ValueUpdateNotifier.NONE);
+		}, StateUpdateNotifiers.bindTextureNotifier);
 
 		uniforms.uniform2i("gtextureSize", () -> {
 			final int glId = GLStateManager.getBoundTextureForServerState(0);
@@ -90,7 +90,7 @@ public final class CommonUniforms {
 			final TextureInfo info = TextureInfoCache.INSTANCE.getInfo(glId);
 			return new Vector2i(info.getWidth(), info.getHeight());
 
-		}, ValueUpdateNotifier.NONE);
+		}, StateUpdateNotifiers.bindTextureNotifier);
 
 		uniforms.uniform4i("blendFunc", () -> {
             if(GLStateManager.getBlendMode().isEnabled()) {
@@ -98,9 +98,9 @@ public final class CommonUniforms {
                 return new Vector4i(blend.getSrcRgb(), blend.getDstRgb(), blend.getSrcAlpha(), blend.getDstAlpha());
             }
             return ZERO_VECTOR_4i;
-		}, ValueUpdateNotifier.NONE);
+		}, StateUpdateNotifiers.blendFuncNotifier);
 
-		uniforms.uniform1i("renderStage", () -> GbufferPrograms.getCurrentPhase().ordinal(), ValueUpdateNotifier.NONE);
+		uniforms.uniform1i("renderStage", () -> GbufferPrograms.getCurrentPhase().ordinal(), StateUpdateNotifiers.phaseChangeNotifier);
 
         uniforms.uniform4f("entityColor", CapturedRenderingState.INSTANCE::getCurrentEntityColor, CapturedRenderingState.INSTANCE.getEntityColorNotifier());
 
@@ -112,6 +112,7 @@ public final class CommonUniforms {
 		final SmoothedVec2f eyeBrightnessSmooth = new SmoothedVec2f(directives.getEyeBrightnessHalfLife(), directives.getEyeBrightnessHalfLife(), CommonUniforms::getEyeBrightness, updateNotifier);
 
         uniforms
+            .uniform1f(ONCE, "pi", () -> (float) Math.PI)
             .uniform1f(ONCE, "darknessFactor", () -> 0.0F) // This is PER_FRAME in modern, it is an effect added by The Warden. We're just setting to 0 because 1.7.10 doesn't have it.
             .uniform1f(ONCE, "darknessLightFactor", () -> 0.0F) // Warden darkness current light factor - 1.7.10 doesn't have it so hardcode to 0
 			.uniform1b(PER_FRAME, "hideGUI", () -> client.gameSettings.hideGUI)

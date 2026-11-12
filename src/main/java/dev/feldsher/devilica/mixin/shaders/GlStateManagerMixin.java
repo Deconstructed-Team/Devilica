@@ -12,6 +12,7 @@ import net.coderbot.iris.gbuffer_overrides.state.StateTracker;
 import net.coderbot.iris.gl.blending.AlphaTestStorage;
 import net.coderbot.iris.gl.blending.BlendModeStorage;
 import net.coderbot.iris.gl.blending.DepthColorStorage;
+import net.coderbot.iris.gl.state.StateUpdateNotifiers;
 import net.coderbot.iris.samplers.IrisSamplers;
 import net.coderbot.iris.texture.pbr.PBRTextureManager;
 import net.minecraft.client.renderer.GlStateManager;
@@ -85,6 +86,14 @@ public abstract class GlStateManagerMixin {
         }
     }
 
+    /** Changes that reached GL (a deferred one returns at the head): the pack's blendFunc uniform follows them. */
+    @Inject(method = {"enableBlend", "disableBlend", "blendFunc(II)V", "tryBlendFuncSeparate(IIII)V"}, at = @At("RETURN"))
+    private static void devilica$blendChanged(CallbackInfo ci) {
+        if (Iris.enabled) {
+            StateUpdateNotifiers.blendFuncNotifier.run();
+        }
+    }
+
     // ---- depth and colour writes
 
     @Inject(method = "depthMask", at = @At("HEAD"), cancellable = true)
@@ -140,6 +149,9 @@ public abstract class GlStateManagerMixin {
     private static void devilica$bindTexture(int texture, CallbackInfo ci) {
         if (GLStateManager.isMainThread()) {
             TextureTracker.INSTANCE.onBindTexture(texture);
+            if (GLStateManager.getActiveTextureUnit() == 0) {
+                StateUpdateNotifiers.bindTextureNotifier.run();
+            }
         }
     }
 
@@ -188,6 +200,13 @@ public abstract class GlStateManagerMixin {
         if (pname == GL11.GL_FOG_COLOR) {
             final int at = param.position();
             GLStateManager.onFogColor(param.get(at), param.get(at + 1), param.get(at + 2), param.get(at + 3));
+        }
+    }
+
+    @Inject(method = {"enableFog", "disableFog", "setFog", "setFogDensity", "setFogStart", "setFogEnd"}, at = @At("RETURN"))
+    private static void devilica$fogChanged(CallbackInfo ci) {
+        if (Iris.enabled) {
+            StateUpdateNotifiers.fogNotifier.run();
         }
     }
 

@@ -83,8 +83,12 @@ public class HandRenderer {
         final Item item = heldItem.getItem();
 
         if (item instanceof ItemBlock itemBlock) {
+            final Block block = itemBlock.getBlock();
             final Map<Block, BlockRenderLayer> blockTypeIds = BlockRenderingSettings.INSTANCE.getBlockTypeIds();
-            return blockTypeIds != null && blockTypeIds.get(itemBlock.getBlock()) == BlockRenderLayer.TRANSLUCENT;
+            final BlockRenderLayer override = blockTypeIds != null ? blockTypeIds.get(block) : null;
+            // Without a layer from the pack, the block's own: held stained glass and ice belong to the translucent pass
+            final BlockRenderLayer layer = override != null ? override : block.getRenderLayer();
+            return layer == BlockRenderLayer.TRANSLUCENT;
         }
 
         return false;
@@ -94,8 +98,12 @@ public class HandRenderer {
         return isHandTranslucent(InteractionHand.MAIN_HAND) || isHandTranslucent(InteractionHand.OFF_HAND);
     }
 
+    public boolean isAnyHandSolid() {
+        return !(isHandTranslucent(InteractionHand.MAIN_HAND) && isHandTranslucent(InteractionHand.OFF_HAND));
+    }
+
     public void renderSolid(float tickDelta, Camera camera, RenderGlobal gameRenderer, WorldRenderingPipeline pipeline) {
-        if (!canRender(camera, gameRenderer) || !IrisApi.getInstance().isShaderPackInUse()) {
+        if (!canRender(camera, gameRenderer) || !IrisApi.getInstance().isShaderPackInUse() || !isAnyHandSolid()) {
             return;
         }
         Minecraft mc = Minecraft.getMinecraft();
@@ -105,38 +113,41 @@ public class HandRenderer {
         pipeline.setPhase(WorldRenderingPhase.HAND_SOLID);
 
         GL11.glPushMatrix();
-        GLStateManager.glDepthMask(true); // actually write to the depth buffer, it's normally disabled at this point
+        try {
+            GLStateManager.glDepthMask(true); // actually write to the depth buffer, it's normally disabled at this point
 
-        mc.profiler.startSection("iris_hand");
+            mc.profiler.startSection("iris_hand");
+            try {
+                setupGlState(gameRenderer, camera, tickDelta);
 
-        setupGlState(gameRenderer, camera, tickDelta);
+                GbufferPrograms.setBlockEntityDefaults();
 
-        GbufferPrograms.setBlockEntityDefaults();
+                renderingSolid = true;
+                // Forge's RenderHandEvent, which vanilla's renderHand posts. Here it goes out once a frame, under the
+                // hand's matrices as vanilla has them and in the pack's hand pass: a mod that cancels it and draws the
+                // arm itself drew it under the world's matrices first, and then again over the finished frame, past
+                // the pack.
+                handEventPosted = true;
+                if (!ForgeHooksClient.renderFirstPersonHand(mc.renderGlobal, tickDelta, 2)) {
+                    mc.entityRenderer.enableLightmap();
+                    mc.entityRenderer.itemRenderer.renderItemInFirstPerson(tickDelta);
+                    mc.entityRenderer.disableLightmap();
+                }
+            } finally {
+                renderingSolid = false;
+                mc.profiler.endSection();
+            }
 
-        renderingSolid = true;
-        // Forge's RenderHandEvent, which vanilla's renderHand posts. Here it goes out once a frame, under the hand's
-        // matrices as vanilla has them and in the pack's hand pass: a mod that cancels it and draws the arm itself
-        // drew it under the world's matrices first, and then again over the finished frame, past the pack.
-        handEventPosted = true;
-        if (!ForgeHooksClient.renderFirstPersonHand(mc.renderGlobal, tickDelta, 2)) {
-            mc.entityRenderer.enableLightmap();
-            mc.entityRenderer.itemRenderer.renderItemInFirstPerson(tickDelta);
-            mc.entityRenderer.disableLightmap();
+            GLStateManager.defaultBlendFunc();
+            GLStateManager.glDepthMask(false);
+        } finally {
+            GL11.glPopMatrix();
+            resetProjectionMatrix();
+
+            pipeline.setPhase(WorldRenderingPhase.NONE);
+
+            ACTIVE = false;
         }
-
-        GLStateManager.defaultBlendFunc();
-        GLStateManager.glDepthMask(false);
-        GL11.glPopMatrix();
-
-        mc.profiler.endSection();
-
-        resetProjectionMatrix();
-
-        renderingSolid = false;
-
-        pipeline.setPhase(WorldRenderingPhase.NONE);
-
-        ACTIVE = false;
     }
 
     // TODO: RenderType
@@ -151,26 +162,27 @@ public class HandRenderer {
         pipeline.setPhase(WorldRenderingPhase.HAND_TRANSLUCENT);
 
         GL11.glPushMatrix();
+        try {
+            mc.profiler.startSection("iris_hand_translucent");
+            try {
+                setupGlState(gameRenderer, camera, tickDelta);
 
-        mc.profiler.startSection("iris_hand_translucent");
+                GbufferPrograms.setBlockEntityDefaults();
 
-        setupGlState(gameRenderer, camera, tickDelta);
+                mc.entityRenderer.enableLightmap();
+                mc.entityRenderer.itemRenderer.renderItemInFirstPerson(tickDelta);
+                mc.entityRenderer.disableLightmap();
+            } finally {
+                mc.profiler.endSection();
+            }
+        } finally {
+            GL11.glPopMatrix();
+            resetProjectionMatrix();
 
-        GbufferPrograms.setBlockEntityDefaults();
+            pipeline.setPhase(WorldRenderingPhase.NONE);
 
-        mc.entityRenderer.enableLightmap();
-        mc.entityRenderer.itemRenderer.renderItemInFirstPerson(tickDelta);
-        mc.entityRenderer.disableLightmap();
-
-        GL11.glPopMatrix();
-
-        resetProjectionMatrix();
-
-        Minecraft.getMinecraft().profiler.endSection();
-
-        pipeline.setPhase(WorldRenderingPhase.NONE);
-
-        ACTIVE = false;
+            ACTIVE = false;
+        }
     }
 
     private void resetProjectionMatrix() {

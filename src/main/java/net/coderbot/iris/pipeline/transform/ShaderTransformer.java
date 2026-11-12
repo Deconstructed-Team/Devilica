@@ -658,6 +658,7 @@ public class ShaderTransformer {
             default:
                 throw new IllegalStateException("Unknown patch type: " + patchType.name());
         }
+        TextureTransformer.transform(transformer, parameters);
         CompatibilityTransformer.transformEach(transformer, parameters);
     }
 
