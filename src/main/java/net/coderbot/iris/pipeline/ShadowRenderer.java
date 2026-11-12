@@ -80,6 +80,7 @@ public class ShadowRenderer {
 	private static final CullEverythingFrustum CULL_EVERYTHING_FRUSTUM = new CullEverythingFrustum();
 
 	public static ShadowRenderTargets CURRENT_TARGETS = null;
+	private final PackShadowDirectives shadowDirectives;
 	private final float halfPlaneLength;
 	private final float voxelDistance;
 	private final float renderDistanceMultiplier;
@@ -135,6 +136,7 @@ public class ShadowRenderer {
 
 		final PackShadowDirectives shadowDirectives = directives.getShadowDirectives();
 
+		this.shadowDirectives = shadowDirectives;
 		this.halfPlaneLength = shadowDirectives.getDistance();
 		this.voxelDistance = shadowDirectives.getVoxelDistance();
 		this.renderDistanceMultiplier = shadowDirectives.getDistanceRenderMul();
@@ -183,6 +185,15 @@ public class ShadowRenderer {
 
 	public void setUsesImages(boolean usesImages) {
 		this.packHasVoxelization = packHasVoxelization || usesImages;
+	}
+
+	/** The pack's orthographic shadow projection; a negative near or far plane stands for the render distance. */
+	public static Matrix4f createShadowProjection(PackShadowDirectives shadowDirectives) {
+		final float renderDistance = Minecraft.getMinecraft().gameSettings.renderDistanceChunks * 16;
+		final float nearPlane = shadowDirectives.getNearPlane();
+		final float farPlane = shadowDirectives.getFarPlane();
+		return ShadowMatrices.createOrthoMatrix(shadowDirectives.getDistance(),
+			nearPlane < 0 ? -renderDistance : nearPlane, farPlane < 0 ? renderDistance : farPlane);
 	}
 
 	public static MatrixStack createShadowModelView(float sunPathRotation, float intervalSize) {
@@ -696,7 +707,7 @@ public class ShadowRenderer {
 			// If FOV is not null, the pack wants a perspective based projection matrix. (This is to support legacy packs)
             shadowProjection = ShadowMatrices.createPerspectiveMatrix(this.fov);
 		} else {
-            shadowProjection = ShadowMatrices.createOrthoMatrix(halfPlaneLength);
+            shadowProjection = createShadowProjection(this.shadowDirectives);
 		}
 
 		PROJECTION.set(shadowProjection);

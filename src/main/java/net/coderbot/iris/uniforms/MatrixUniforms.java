@@ -4,7 +4,6 @@ import com.gtnewhorizons.angelica.rendering.RenderingState;
 import net.coderbot.iris.gl.uniform.UniformHolder;
 import net.coderbot.iris.pipeline.ShadowRenderer;
 import net.coderbot.iris.shaderpack.PackDirectives;
-import net.coderbot.iris.shadow.ShadowMatrices;
 import org.joml.Matrix4f;
 
 import java.util.function.Supplier;
@@ -21,7 +20,7 @@ public final class MatrixUniforms {
 		// We need to audit Mojang's linear algebra.
 		addMatrix(uniforms, "Projection", RenderingState.INSTANCE::getProjectionMatrix);
 		addShadowMatrix(uniforms, "ModelView", () -> ShadowRenderer.createShadowModelView(directives.getSunPathRotation(), directives.getShadowDirectives().getIntervalSize()).peek().getModel());
-        addShadowMatrix(uniforms, "Projection", () -> ShadowMatrices.createOrthoMatrix(directives.getShadowDirectives().getDistance()));
+        addShadowMatrix(uniforms, "Projection", () -> ShadowRenderer.createShadowProjection(directives.getShadowDirectives()));
 	}
 
 	private static void addMatrix(UniformHolder uniforms, String name, Supplier<Matrix4f> supplier) {
