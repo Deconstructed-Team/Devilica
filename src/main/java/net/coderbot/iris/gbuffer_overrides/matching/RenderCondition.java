@@ -11,12 +11,16 @@ public enum RenderCondition {
 	BEACON_BEAM,
 	ENTITIES,
 	ENTITIES_TRANSLUCENT,
+	PARTICLES,
+	PARTICLES_TRANSLUCENT,
 	GLINT,
 	ENTITY_EYES,
 	HAND_OPAQUE,
 	HAND_TRANSLUCENT,
 	RAIN_SNOW,
 	WORLD_BORDER,
+	LIGHTNING,
+	SHADOW_TRANSLUCENT,
 	// NB: Must be last due to implementation details of DeferredWorldRenderingPipeline
 	SHADOW
 }

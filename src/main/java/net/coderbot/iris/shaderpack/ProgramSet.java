@@ -16,6 +16,9 @@ public class ProgramSet {
 	private final PackDirectives packDirectives;
 
 	private final ProgramSource shadow;
+	private final ProgramSource shadowSolid;
+	private final ProgramSource shadowCutout;
+	private final ProgramSource shadowWater;
 	private final ComputeSource[] shadowCompute;
 
 	private final ProgramSource[] shadowcomp;
@@ -32,6 +35,8 @@ public class ProgramSet {
 	private final ProgramSource gbuffersTextured;
 	private final ProgramSource gbuffersTexturedLit;
 	private final ProgramSource gbuffersTerrain;
+	private final ProgramSource gbuffersTerrainSolid;
+	private final ProgramSource gbuffersTerrainCutout;
 	private ProgramSource gbuffersDamagedBlock;
 	private final ProgramSource gbuffersSkyBasic;
 	private final ProgramSource gbuffersSkyTextured;
@@ -40,6 +45,9 @@ public class ProgramSet {
 	private final ProgramSource gbuffersEntities;
 	private final ProgramSource gbuffersEntitiesTrans;
 	private final ProgramSource gbuffersEntitiesGlowing;
+	private final ProgramSource gbuffersLightning;
+	private final ProgramSource gbuffersParticles;
+	private final ProgramSource gbuffersParticlesTrans;
 	private final ProgramSource gbuffersGlint;
 	private final ProgramSource gbuffersEntityEyes;
 	private final ProgramSource gbuffersBlock;
@@ -76,6 +84,12 @@ public class ProgramSet {
 		// - https://github.com/IrisShaders/Iris/issues/987
 		this.shadow = readProgramSource(directory, sourceProvider, "shadow", this, shaderProperties,
 				BlendModeOverride.OFF);
+		this.shadowSolid = readProgramSource(directory, sourceProvider, "shadow_solid", this, shaderProperties,
+				BlendModeOverride.OFF);
+		this.shadowCutout = readProgramSource(directory, sourceProvider, "shadow_cutout", this, shaderProperties,
+				BlendModeOverride.OFF);
+		this.shadowWater = readProgramSource(directory, sourceProvider, "shadow_water", this, shaderProperties,
+				BlendModeOverride.OFF);
 		this.shadowCompute = readComputeArray(directory, sourceProvider, "shadow");
 
 		this.shadowcomp = readProgramArray(directory, sourceProvider, "shadowcomp", shaderProperties);
@@ -105,6 +119,8 @@ public class ProgramSet {
 		this.gbuffersTextured = readProgramSource(directory, sourceProvider, "gbuffers_textured", this, shaderProperties);
 		this.gbuffersTexturedLit = readProgramSource(directory, sourceProvider, "gbuffers_textured_lit", this, shaderProperties);
 		this.gbuffersTerrain = readProgramSource(directory, sourceProvider, "gbuffers_terrain", this, shaderProperties);
+		this.gbuffersTerrainSolid = readProgramSource(directory, sourceProvider, "gbuffers_terrain_solid", this, shaderProperties);
+		this.gbuffersTerrainCutout = readProgramSource(directory, sourceProvider, "gbuffers_terrain_cutout", this, shaderProperties);
 		this.gbuffersDamagedBlock = readProgramSource(directory, sourceProvider, "gbuffers_damagedblock", this, shaderProperties);
 		this.gbuffersSkyBasic = readProgramSource(directory, sourceProvider, "gbuffers_skybasic", this, shaderProperties);
 		this.gbuffersSkyTextured = readProgramSource(directory, sourceProvider, "gbuffers_skytextured", this, shaderProperties);
@@ -113,6 +129,9 @@ public class ProgramSet {
 		this.gbuffersEntities = readProgramSource(directory, sourceProvider, "gbuffers_entities", this, shaderProperties);
 		this.gbuffersEntitiesTrans = readProgramSource(directory, sourceProvider, "gbuffers_entities_translucent", this, shaderProperties);
 		this.gbuffersEntitiesGlowing = readProgramSource(directory, sourceProvider, "gbuffers_entities_glowing", this, shaderProperties);
+		this.gbuffersLightning = readProgramSource(directory, sourceProvider, "gbuffers_lightning", this, shaderProperties);
+		this.gbuffersParticles = readProgramSource(directory, sourceProvider, "gbuffers_particles", this, shaderProperties);
+		this.gbuffersParticlesTrans = readProgramSource(directory, sourceProvider, "gbuffers_particles_translucent", this, shaderProperties);
 		this.gbuffersGlint = readProgramSource(directory, sourceProvider, "gbuffers_armor_glint", this, shaderProperties);
 		this.gbuffersEntityEyes = readProgramSource(directory, sourceProvider, "gbuffers_spidereyes", this, shaderProperties);
 		this.gbuffersBlock = readProgramSource(directory, sourceProvider, "gbuffers_block", this, shaderProperties);
@@ -209,14 +228,18 @@ public class ProgramSet {
 		List<ComputeSource> computes = new ArrayList<>();
 
 		programs.add(shadow);
+		programs.add(shadowSolid);
+		programs.add(shadowCutout);
+		programs.add(shadowWater);
 		programs.addAll(Arrays.asList(shadowcomp));
 		programs.addAll(Arrays.asList(begin));
 		programs.addAll(Arrays.asList(prepare));
 
 		programs.addAll (Arrays.asList(
 				gbuffersBasic, gbuffersBeaconBeam, gbuffersTextured, gbuffersTexturedLit, gbuffersTerrain,
+				gbuffersTerrainSolid, gbuffersTerrainCutout,
 				gbuffersDamagedBlock, gbuffersSkyBasic, gbuffersSkyTextured, gbuffersClouds, gbuffersWeather,
-				gbuffersEntities, gbuffersEntitiesTrans, gbuffersEntitiesGlowing, gbuffersGlint, gbuffersEntityEyes, gbuffersBlock,
+				gbuffersEntities, gbuffersEntitiesTrans, gbuffersEntitiesGlowing, gbuffersLightning, gbuffersParticles, gbuffersParticlesTrans, gbuffersGlint, gbuffersEntityEyes, gbuffersBlock,
 				gbuffersHand
 		));
 
@@ -293,6 +316,18 @@ public class ProgramSet {
 		return shadow.requireValid();
 	}
 
+	public Optional<ProgramSource> getShadowSolid() {
+		return shadowSolid.requireValid();
+	}
+
+	public Optional<ProgramSource> getShadowCutout() {
+		return shadowCutout.requireValid();
+	}
+
+	public Optional<ProgramSource> getShadowWater() {
+		return shadowWater.requireValid();
+	}
+
 	public ProgramSource[] getShadowComposite() {
 		return shadowcomp;
 	}
@@ -333,6 +368,14 @@ public class ProgramSet {
 		return gbuffersTerrain.requireValid();
 	}
 
+	public Optional<ProgramSource> getGbuffersTerrainSolid() {
+		return gbuffersTerrainSolid.requireValid();
+	}
+
+	public Optional<ProgramSource> getGbuffersTerrainCutout() {
+		return gbuffersTerrainCutout.requireValid();
+	}
+
 	public Optional<ProgramSource> getGbuffersDamagedBlock() {
 		return gbuffersDamagedBlock.requireValid();
 	}
@@ -365,6 +408,18 @@ public class ProgramSet {
 		return gbuffersEntitiesGlowing.requireValid();
 	}
 
+	public Optional<ProgramSource> getGbuffersLightning() {
+		return gbuffersLightning.requireValid();
+	}
+
+	public Optional<ProgramSource> getGbuffersParticles() {
+		return gbuffersParticles.requireValid();
+	}
+
+	public Optional<ProgramSource> getGbuffersParticlesTrans() {
+		return gbuffersParticlesTrans.requireValid();
+	}
+
 	public Optional<ProgramSource> getGbuffersGlint() {
 		return gbuffersGlint.requireValid();
 	}
@@ -384,6 +439,9 @@ public class ProgramSet {
 	public Optional<ProgramSource> get(ProgramId programId) {
         return switch (programId) {
             case Shadow -> getShadow();
+            case ShadowSolid -> getShadowSolid();
+            case ShadowCutout -> getShadowCutout();
+            case ShadowWater -> first(getShadowWater(), getShadow());
             case Basic -> getGbuffersBasic();
             case Line -> gbuffersLine.requireValid();
             case Textured -> getGbuffersTextured();
@@ -392,12 +450,17 @@ public class ProgramSet {
             case SkyTextured -> getGbuffersSkyTextured();
             case Clouds -> getGbuffersClouds();
             case Terrain -> getGbuffersTerrain();
+            case TerrainSolid -> getGbuffersTerrainSolid();
+            case TerrainCutout -> getGbuffersTerrainCutout();
             case DamagedBlock -> getGbuffersDamagedBlock();
             case Block -> getGbuffersBlock();
             case BeaconBeam -> getGbuffersBeaconBeam();
             case Entities -> getGbuffersEntities();
             case EntitiesTrans -> getGbuffersEntitiesTrans();
             case EntitiesGlowing -> getGbuffersEntitiesGlowing();
+            case Lightning -> getGbuffersLightning();
+            case Particles -> getGbuffersParticles();
+            case ParticlesTrans -> getGbuffersParticlesTrans();
             case ArmorGlint -> getGbuffersGlint();
             case SpiderEyes -> getGbuffersEntityEyes();
             case Hand -> getGbuffersHand();

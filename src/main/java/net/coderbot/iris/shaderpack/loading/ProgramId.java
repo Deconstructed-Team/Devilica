@@ -9,6 +9,7 @@ public enum ProgramId {
 	Shadow(ProgramGroup.Shadow, ""),
 	ShadowSolid(ProgramGroup.Shadow, "solid", Shadow),
 	ShadowCutout(ProgramGroup.Shadow, "cutout", Shadow),
+	ShadowWater(ProgramGroup.Shadow, "water", Shadow, BlendModeOverride.OFF),
 
 	Basic(ProgramGroup.Gbuffers, "basic"),
 	Line(ProgramGroup.Gbuffers, "line", Basic),
@@ -32,6 +33,9 @@ public enum ProgramId {
 	Entities(ProgramGroup.Gbuffers, "entities", TexturedLit),
 	EntitiesTrans(ProgramGroup.Gbuffers, "entities_translucent", Entities),
 	EntitiesGlowing(ProgramGroup.Gbuffers, "entities_glowing", Entities),
+	Lightning(ProgramGroup.Gbuffers, "lightning", Entities),
+	Particles(ProgramGroup.Gbuffers, "particles", TexturedLit),
+	ParticlesTrans(ProgramGroup.Gbuffers, "particles_translucent", Particles),
 	ArmorGlint(ProgramGroup.Gbuffers, "armor_glint", Textured),
 	SpiderEyes(ProgramGroup.Gbuffers, "spidereyes", Textured),
 

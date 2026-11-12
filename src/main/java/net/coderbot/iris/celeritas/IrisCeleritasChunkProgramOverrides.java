@@ -137,8 +137,16 @@ public class IrisCeleritasChunkProgramOverrides {
             if (celeritasPipeline != null && !celeritasPipeline.hasShadowPass()) {
                 throw new IllegalStateException("Shadow program requested, but shader pack has no shadow pass");
             }
-            return programs.get(pass.supportsFragmentDiscard() ?
-                IrisTerrainPass.SHADOW_CUTOUT : IrisTerrainPass.SHADOW);
+            if (pass.isReverseOrder()) {
+                // Devilica: newer Angelica builds shadow a second time for a pack without shadow_water and draws the
+                // layer with blending off. Here that pack's translucent layer keeps the shadow program it drew with
+                // before the file was read, blend state included.
+                final GlProgram<IrisCeleritasChunkShaderInterface> translucent = programs.get(IrisTerrainPass.SHADOW_TRANSLUCENT);
+                if (translucent != null) {
+                    return translucent;
+                }
+            }
+            return programs.get(pass.supportsFragmentDiscard() ? IrisTerrainPass.SHADOW_CUTOUT : IrisTerrainPass.SHADOW);
         } else {
             if (pass.supportsFragmentDiscard()) {
                 return programs.get(IrisTerrainPass.GBUFFER_CUTOUT);
