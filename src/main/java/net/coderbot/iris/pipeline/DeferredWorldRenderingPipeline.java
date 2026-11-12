@@ -212,13 +212,33 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 		final Map<Pair<String, InputAvailability>, CompletableFuture<Map<PatchShaderType, String>>> attributeTransformFutures = submitAttributeTransforms(resolver);
 
 		final Optional<ProgramSource> terrainSource = first(programs.getGbuffersTerrain(), programs.getGbuffersTexturedLit(), programs.getGbuffersTextured(), programs.getGbuffersBasic());
+		final Optional<ProgramSource> terrainSolidOverride = programs.getGbuffersTerrainSolid();
+		final Optional<ProgramSource> terrainCutoutOverride = programs.getGbuffersTerrainCutout();
+		final Optional<ProgramSource> terrainSolidSource = first(terrainSolidOverride, terrainSource);
+		final Optional<ProgramSource> terrainCutoutSource = first(terrainCutoutOverride, terrainSource);
+
 		final Optional<ProgramSource> translucentSource = first(programs.getGbuffersWater(), terrainSource);
 		final Optional<ProgramSource> shadowSource = programs.getShadow();
+		final Optional<ProgramSource> shadowSolidOverride = programs.getShadowSolid();
+		final Optional<ProgramSource> shadowCutoutOverride = programs.getShadowCutout();
+		final Optional<ProgramSource> shadowSolidSource = first(shadowSolidOverride, shadowSource);
+		final Optional<ProgramSource> shadowCutoutSource = first(shadowCutoutOverride, shadowSource);
+		// Devilica: not shadow in its place, see CeleritasTerrainPipeline
+		final Optional<ProgramSource> shadowTranslucentSource = programs.getShadowWater();
 
 		// Celeritas terrain transform futures
 		final CompletableFuture<Map<PatchShaderType, String>> celeritasTerrainFuture = terrainSource.map(DeferredWorldRenderingPipeline::submitCeleritasTerrainTransform).orElse(null);
+		final CompletableFuture<Map<PatchShaderType, String>> celeritasTerrainSolidFuture = terrainSolidOverride
+			.map(DeferredWorldRenderingPipeline::submitCeleritasTerrainTransform).orElse(celeritasTerrainFuture);
+		final CompletableFuture<Map<PatchShaderType, String>> celeritasTerrainCutoutFuture = terrainCutoutOverride
+			.map(DeferredWorldRenderingPipeline::submitCeleritasTerrainTransform).orElse(celeritasTerrainFuture);
 		final CompletableFuture<Map<PatchShaderType, String>> celeritasTranslucentFuture = translucentSource.map(DeferredWorldRenderingPipeline::submitCeleritasTerrainTransform).orElse(null);
 		final CompletableFuture<Map<PatchShaderType, String>> celeritasShadowFuture = shadowSource.map(DeferredWorldRenderingPipeline::submitCeleritasTerrainTransform).orElse(null);
+		final CompletableFuture<Map<PatchShaderType, String>> celeritasShadowSolidFuture = shadowSolidOverride
+			.map(DeferredWorldRenderingPipeline::submitCeleritasTerrainTransform).orElse(celeritasShadowFuture);
+		final CompletableFuture<Map<PatchShaderType, String>> celeritasShadowCutoutFuture = shadowCutoutOverride
+			.map(DeferredWorldRenderingPipeline::submitCeleritasTerrainTransform).orElse(celeritasShadowFuture);
+		final CompletableFuture<Map<PatchShaderType, String>> celeritasShadowTranslucentFuture = shadowTranslucentSource.map(DeferredWorldRenderingPipeline::submitCeleritasTerrainTransform).orElse(null);
 
 		this.cloudSetting = programs.getPackDirectives().getCloudSetting();
 		this.shouldRenderUnderwaterOverlay = programs.getPackDirectives().underwaterOverlay();
@@ -384,6 +404,7 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 				null, null, ProgramId.Weather,
 				// world border uses textured_lit even though it has no lightmap :/
 				null, ProgramId.TexturedLit, ProgramId.TexturedLit,
+				ProgramId.ShadowWater, ProgramId.ShadowWater, ProgramId.ShadowWater,
 				ProgramId.Shadow, ProgramId.Shadow, ProgramId.Shadow
 		};
 
@@ -416,7 +437,7 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 				idx = 0;
 			}
 
-			ProgramId id = ids[condition.ordinal() * 3 + idx];
+			ProgramId id = ownProgramOrBefore(programs, ids[condition.ordinal() * 3 + idx]);
 
 			if (id == null) {
 				id = ids[idx];
@@ -427,7 +448,7 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 			return cachedPasses.computeIfAbsent(Pair.of(id, availability), p -> {
 				final ProgramSource source = resolver.resolveNullable(p.getLeft());
 
-				if (condition == RenderCondition.SHADOW) {
+				if (condition == RenderCondition.SHADOW || condition == RenderCondition.SHADOW_TRANSLUCENT) {
 					if (!shadowDirectives.isShadowEnabled().orElse(shadowRenderTargets != null)) {
 						// shadow is not used
 						return null;
@@ -444,7 +465,8 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 				}
 
 				try {
-					return createPass(source, availability, condition == RenderCondition.SHADOW, finalId);
+					return createPass(source, availability,
+						condition == RenderCondition.SHADOW || condition == RenderCondition.SHADOW_TRANSLUCENT, finalId);
 				} catch (Exception e) {
 					throw new RuntimeException("Failed to create pass for " + source.getName() + " for rendering condition "
 						+ condition + " specialized to input availability " + availability, e);
@@ -471,7 +493,9 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 				this.shadowRenderer = new ShadowRenderer(programs.getShadow().orElse(null),
 					programs.getPackDirectives(), shadowRenderTargets, shadowCompositeRenderer, this::rebindPass);
 				Program shadowProgram = table.match(RenderCondition.SHADOW, SHADOW_INPUTS).getProgram();
-				shadowRenderer.setUsesImages(shadowProgram != null && shadowProgram.getActiveImages() > 0);
+				Program shadowWaterProgram = table.match(RenderCondition.SHADOW_TRANSLUCENT, SHADOW_INPUTS).getProgram();
+				shadowRenderer.setUsesImages((shadowProgram != null && shadowProgram.getActiveImages() > 0)
+					|| (shadowWaterProgram != null && shadowWaterProgram.getActiveImages() > 0));
 			} else {
 				shadowRenderer = null;
 			}
@@ -585,10 +609,14 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 		this.celeritasTerrainPipeline = new CeleritasTerrainPipeline(createTerrainSamplers,
 			shadowRenderer == null ? null : createShadowTerrainSamplers, createTerrainImages,
 			shadowRenderer == null ? null : createShadowTerrainImages, this.customUniforms,
-			terrainSource,
+			terrainSolidSource,
+			terrainCutoutSource,
 			translucentSource,
-			shadowSource,
-			celeritasTerrainFuture, celeritasTranslucentFuture, celeritasShadowFuture,
+			shadowSolidSource,
+			shadowCutoutSource,
+			shadowTranslucentSource,
+			celeritasTerrainSolidFuture, celeritasTerrainCutoutFuture, celeritasTranslucentFuture,
+			celeritasShadowSolidFuture, celeritasShadowCutoutFuture, celeritasShadowTranslucentFuture,
 			renderTargets, flippedAfterPrepare, flippedAfterTranslucent,
 			celeritasShadowFb);
 
@@ -695,7 +723,10 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 
 	private RenderCondition getCondition(WorldRenderingPhase phase) {
 		if (isRenderingShadow) {
-			return RenderCondition.SHADOW;
+			return switch (phase) {
+				case TERRAIN_TRANSLUCENT, TRIPWIRE -> RenderCondition.SHADOW_TRANSLUCENT;
+				default -> RenderCondition.SHADOW;
+			};
 		}
 
 		if (special != null) {
@@ -747,12 +778,26 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 	}
 
 	/**
+	 * Devilica: a program carried over from newer Angelica that the pack does not ship gets no pass of its own built
+	 * from its fallback's source. Its row takes the pass its draws had before the program was read (null is the default
+	 * row): the same program, blend overrides and framebuffers as before, and nothing compiled a second time.
+	 */
+	@Nullable
+	private static ProgramId ownProgramOrBefore(ProgramSet programs, @Nullable ProgramId id) {
+		if (id == ProgramId.ShadowWater && programs.getShadowWater().isEmpty()) {
+			return ProgramId.Shadow;
+		}
+
+		return id;
+	}
+
+	/**
 	 * Shadow passes always get the lightmap attribute: every vertex format they submit carries the lightmap
 	 * element, while the live {@code inputs} flag tracks whether unit 1 has GL_TEXTURE_2D enabled - which the
 	 * shadow pass never does. Keep this consistent with the shadow program lookups in the constructor.
 	 */
 	private InputAvailability inputsFor(RenderCondition condition) {
-		if (condition == RenderCondition.SHADOW) {
+		if (condition == RenderCondition.SHADOW || condition == RenderCondition.SHADOW_TRANSLUCENT) {
 			return SHADOW_INPUTS;
 		}
 

@@ -76,12 +76,18 @@ public class CeleritasTerrainPipeline {
             IntFunction<ProgramImages> createTerrainImages,
             IntFunction<ProgramImages> createShadowImages,
             CustomUniforms customUniforms,
-            Optional<ProgramSource> terrainSource,
+            Optional<ProgramSource> terrainSolidSource,
+            Optional<ProgramSource> terrainCutoutSource,
             Optional<ProgramSource> translucentSource,
-            Optional<ProgramSource> shadowSource,
-            CompletableFuture<Map<PatchShaderType, String>> terrainFuture,
+            Optional<ProgramSource> shadowSolidSource,
+            Optional<ProgramSource> shadowCutoutSource,
+            Optional<ProgramSource> shadowTranslucentSource,
+            CompletableFuture<Map<PatchShaderType, String>> terrainSolidFuture,
+            CompletableFuture<Map<PatchShaderType, String>> terrainCutoutFuture,
             CompletableFuture<Map<PatchShaderType, String>> translucentFuture,
-            CompletableFuture<Map<PatchShaderType, String>> shadowFuture,
+            CompletableFuture<Map<PatchShaderType, String>> shadowSolidFuture,
+            CompletableFuture<Map<PatchShaderType, String>> shadowCutoutFuture,
+            CompletableFuture<Map<PatchShaderType, String>> shadowTranslucentFuture,
             RenderTargets renderTargets,
             ImmutableSet<Integer> flippedAfterPrepare,
             ImmutableSet<Integer> flippedAfterTranslucent,
@@ -95,10 +101,14 @@ public class CeleritasTerrainPipeline {
 
         // Build program source map (local - only needed during construction)
         final EnumMap<IrisTerrainPass, Optional<ProgramSource>> gbufferProgramSource = new EnumMap<>(IrisTerrainPass.class);
-        gbufferProgramSource.put(IrisTerrainPass.GBUFFER_SOLID, terrainSource);
-        gbufferProgramSource.put(IrisTerrainPass.GBUFFER_CUTOUT, terrainSource);
-        gbufferProgramSource.put(IrisTerrainPass.GBUFFER_TRANSLUCENT, translucentSource.isPresent() ? translucentSource : terrainSource);
-        gbufferProgramSource.put(IrisTerrainPass.SHADOW, shadowSource);
+        gbufferProgramSource.put(IrisTerrainPass.GBUFFER_SOLID, terrainSolidSource);
+        gbufferProgramSource.put(IrisTerrainPass.GBUFFER_CUTOUT, terrainCutoutSource);
+        gbufferProgramSource.put(IrisTerrainPass.GBUFFER_TRANSLUCENT, translucentSource);
+        gbufferProgramSource.put(IrisTerrainPass.SHADOW, shadowSolidSource);
+        gbufferProgramSource.put(IrisTerrainPass.SHADOW_CUTOUT, shadowCutoutSource);
+        // Devilica: the pack's shadow_water alone, not shadow in its place: without the file this pass has no program
+        // and the translucent layer keeps the one it had (IrisCeleritasChunkProgramOverrides)
+        gbufferProgramSource.put(IrisTerrainPass.SHADOW_TRANSLUCENT, shadowTranslucentSource);
 
         // Initialize PassInfo, framebuffers, blend modes, and alpha in single pass
         for (IrisTerrainPass pass : IrisTerrainPass.VALUES) {
@@ -107,12 +117,15 @@ public class CeleritasTerrainPipeline {
 
             // Set up framebuffer, blend mode, and buffer blend overrides
             final ProgramId programId = switch (pass) {
+                case GBUFFER_SOLID -> ProgramId.TerrainSolid;
+                case GBUFFER_CUTOUT -> ProgramId.TerrainCutout;
                 case GBUFFER_TRANSLUCENT -> ProgramId.Water;
-                case SHADOW, SHADOW_CUTOUT -> ProgramId.Shadow;
-                default -> ProgramId.Terrain;
+                case SHADOW_TRANSLUCENT -> ProgramId.ShadowWater;
+                case SHADOW -> ProgramId.ShadowSolid;
+                case SHADOW_CUTOUT -> ProgramId.ShadowCutout;
             };
 
-            if (pass == IrisTerrainPass.SHADOW || pass == IrisTerrainPass.SHADOW_CUTOUT) {
+            if (pass.isShadow()) {
                 passInfo.framebuffer = shadowFramebuffer;
                 passInfo.blendModeOverride = programId.getBlendModeOverride();
                 passInfo.bufferBlendOverrides = Collections.emptyList();
@@ -143,15 +156,17 @@ public class CeleritasTerrainPipeline {
 
             // The pack's alpha test for the program, else OptiFine's for cutout terrain: packs that do not discard
             // see-through texels themselves (BSL) count on it, or grass sides and leaves come out solid
-            final Optional<ProgramSource> alphaSource = pass.isShadow() ? shadowSource : gbufferProgramSource.get(pass);
-            passInfo.alphaTestOverride = alphaSource.flatMap(source -> source.getDirectives().getAlphaTestOverride())
+            passInfo.alphaTestOverride = gbufferProgramSource.get(pass).flatMap(source -> source.getDirectives().getAlphaTestOverride())
                 .orElse(pass == IrisTerrainPass.GBUFFER_CUTOUT || pass == IrisTerrainPass.SHADOW_CUTOUT ? CUTOUT_ALPHA : null);
         }
 
         // Process and apply shader sources
-        processShaderFuture(terrainFuture, terrainSource, passInfoMap.get(IrisTerrainPass.GBUFFER_SOLID), passInfoMap.get(IrisTerrainPass.GBUFFER_CUTOUT));
+        processShaderFuture(terrainSolidFuture, terrainSolidSource, passInfoMap.get(IrisTerrainPass.GBUFFER_SOLID));
+        processShaderFuture(terrainCutoutFuture, terrainCutoutSource, passInfoMap.get(IrisTerrainPass.GBUFFER_CUTOUT));
         processShaderFuture(translucentFuture, translucentSource, passInfoMap.get(IrisTerrainPass.GBUFFER_TRANSLUCENT));
-        processShaderFuture(shadowFuture, shadowSource, passInfoMap.get(IrisTerrainPass.SHADOW), passInfoMap.get(IrisTerrainPass.SHADOW_CUTOUT));
+        processShaderFuture(shadowSolidFuture, shadowSolidSource, passInfoMap.get(IrisTerrainPass.SHADOW));
+        processShaderFuture(shadowCutoutFuture, shadowCutoutSource, passInfoMap.get(IrisTerrainPass.SHADOW_CUTOUT));
+        processShaderFuture(shadowTranslucentFuture, shadowTranslucentSource, passInfoMap.get(IrisTerrainPass.SHADOW_TRANSLUCENT));
     }
 
     private void processShaderFuture(@Nullable CompletableFuture<Map<PatchShaderType, String>> future, Optional<ProgramSource> source, PassInfo... targets) {
