@@ -146,7 +146,7 @@ public final class EmissiveTextures {
                 properties.load(reader);
                 final String value = properties.getProperty("suffix.emissive");
                 return value == null || value.trim().isEmpty() ? null : value.trim();
-            } catch (IOException ignored) {
+            } catch (IOException | RuntimeException ignored) {
                 // not in any pack
             }
         }

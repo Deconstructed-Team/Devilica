@@ -102,7 +102,13 @@ public final class ConnectedTextures {
                 Devilica.LOGGER.warn("Connected textures: could not read {}: {}", location, e.toString());
                 continue;
             }
-            final TileOverride override = properties.create();
+            final TileOverride override;
+            try {
+                override = properties.create();
+            } catch (RuntimeException e) {
+                Devilica.LOGGER.warn("Connected textures: {} is malformed: {}", location, e.toString());
+                continue;
+            }
             for (String error : properties.errors) {
                 Devilica.LOGGER.warn("Connected textures: {}: {}", location, error);
             }

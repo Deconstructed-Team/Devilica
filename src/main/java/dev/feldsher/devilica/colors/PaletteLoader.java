@@ -473,7 +473,7 @@ final class PaletteLoader {
             final Properties properties = new Properties();
             properties.load(reader);
             return properties;
-        } catch (IOException e) {
+        } catch (IOException | RuntimeException e) {
             return null;
         }
     }

@@ -91,7 +91,14 @@ public final class CustomItemTextures {
                 Devilica.LOGGER.warn("Custom item textures: could not read {}: {}", location, e.toString());
                 continue;
             }
-            final CitRule rule = read(resources, location, properties);
+            final CitRule rule;
+            try {
+                rule = read(resources, location, properties);
+            } catch (RuntimeException e) {
+                // A pack's file is whatever its author typed (a broken regex, a number past int): never the game's crash
+                Devilica.LOGGER.warn("Custom item textures: {} is malformed: {}", location, e.toString());
+                continue;
+            }
             if (rule == null) {
                 continue;
             }

@@ -182,7 +182,7 @@ final class CitRule implements Comparable<CitRule> {
                 }
                 return false;
             }
-            if (StringUtils.isNumeric(key)) {
+            if (StringUtils.isNumeric(key) && key.length() < 10) {
                 final int index = Integer.parseInt(key);
                 return index < list.tagCount() && matchesNbt(list.get(index), condition, depth + 1);
             }

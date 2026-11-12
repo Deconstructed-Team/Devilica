@@ -57,7 +57,7 @@ final class NaturalTextures {
                 properties = new Properties();
                 properties.load(reader);
                 break;
-            } catch (IOException ignored) {
+            } catch (IOException | RuntimeException ignored) {
                 // not in any pack
             }
         }

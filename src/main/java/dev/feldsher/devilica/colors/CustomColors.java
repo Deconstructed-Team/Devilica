@@ -72,7 +72,13 @@ public final class CustomColors {
             return;
         }
         // At the block atlas's end, so the chunks the renderer rebuilds after a reload see the new colours
-        final Palette loaded = PaletteLoader.load(minecraft.getResourceManager());
+        Palette loaded;
+        try {
+            loaded = PaletteLoader.load(minecraft.getResourceManager());
+        } catch (RuntimeException e) {
+            Devilica.LOGGER.warn("Custom colours: a pack's colour file is malformed, none are used: {}", e.toString());
+            loaded = Palette.EMPTY;
+        }
         RETINTED.clear();
         palette = loaded;
         applyFontCodes();
