@@ -1535,6 +1535,7 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 		phase = WorldRenderingPhase.NONE;
 		overridePhase = null;
 		declaredTranslucent = null;
+		special = null;
 	}
 
 	@Override
