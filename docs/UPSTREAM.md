@@ -124,4 +124,8 @@ packs' `#version 120` code runs as written, as it did in that Angelica.
     reader, so errors surface where they did), and `ConstDirectiveParser` looks only at lines that have `const` in them.
     Not carried over: the preprocessor's disk cache, files read in parallel, `IdMap` and the language map built in the
     background, programs kept across pipelines (`RetainedPrograms`), the pack parsed ahead while shaders are off.
+  - `f78cfdd5` (#1828), the fixes of the shader menus: a pack's text with a percent sign in it is shown as written
+    (the game's `String.format` put "Format error: " in front), an option without a comment gets no comment box with
+    its key in it, the option widgets click, and a slider is applied only by the release of its own press. Not carried
+    over: the new look (value colours, scrolling titles), the debug and unknown-pack toggles, the 1.7.10 list fixes.
 - Later non-core Iris fixes from newer Angelica are to be carried over one by one.

@@ -4,9 +4,11 @@ import com.gtnewhorizons.angelica.glsm.GLStateManager;
 import net.minecraftforge.fml.client.config.GuiUtils;
 import lombok.Getter;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.audio.PositionedSoundRecord;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.resources.I18n;
+import net.minecraft.init.SoundEvents;
 import net.minecraft.util.ResourceLocation;
 import org.lwjgl.opengl.GL14;
 
@@ -141,11 +143,24 @@ public final class GuiUtil {
 	 * @return the translated text if found, otherwise the default provided
 	 */
 	public static String translateOrDefault(String defaultText, String translationDesc, Object ... format) {
-        final String translated = I18n.format(translationDesc, format);
+        final String translated = format.length == 0
+            ? translateLenient(translationDesc)
+            : I18n.format(translationDesc, format);
         if(!translated.equals(translationDesc)) {
             return translated;
         }
 		return defaultText;
+	}
+
+	private static final String FORMAT_ERROR_PREFIX = "Format error: ";
+
+	/**
+	 * A translation taken as it is written. The game runs every translation through {@code String.format}, and a
+	 * pack's text with a percent sign in it ("50%") comes back with this prefix in front.
+	 */
+	public static String translateLenient(String key) {
+		final String translated = I18n.format(key);
+		return translated.startsWith(FORMAT_ERROR_PREFIX) ? translated.substring(FORMAT_ERROR_PREFIX.length()) : translated;
 	}
 
 	/**
@@ -156,7 +171,7 @@ public final class GuiUtil {
 	 * or other action.
 	 */
 	public static void playButtonClickSound() {
-//		client().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1));
+		client().getSoundHandler().playSound(PositionedSoundRecord.getMasterRecord(SoundEvents.UI_BUTTON_CLICK, 1.0F));
 	}
 
 	/**
