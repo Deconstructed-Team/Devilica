@@ -148,4 +148,9 @@ packs' `#version 120` code runs as written, as it did in that Angelica.
   - `1772e9ea` (#2300), the sampler overrides alone: a pack's texture put over a built-in sampler is bound with its own
     texture type and without the built-in sampler's sampler object and notifier (`CustomTextureSamplerInterceptor`).
     The rest of that commit is sampler objects for terrain and PBR mipmaps, which this base does not have.
+- Attribute transforms are submitted for the sources and input sets the program table will ask for and no more. The
+  base transformed every program's source for three input sets, used or not (`gbuffers_line` among them, which nothing
+  draws with here), and left the fourth set, a lightmap without a texture, to be transformed on the render thread while
+  the passes were built. Small ones from newer Angelica: `NamespacedId` keeps its hash (`d876a203`), the unchanged-value
+  returns of `BlendModeStorage`'s deferrals (`a07cecb8`). PBR image resources are closed after reading.
 - Later non-core Iris fixes from newer Angelica are to be carried over one by one.
