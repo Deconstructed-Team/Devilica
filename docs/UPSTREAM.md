@@ -119,4 +119,9 @@ packs' `#version 120` code runs as written, as it did in that Angelica.
   - `38b1d9a0` (#2190), the warm-up alone: the start no longer waits for the transform that loads the GLSL parser. Here
     it runs after the version hoisting is set up and past both caches, so the parser is loaded whatever is on disk.
     Not carried over: the index of PBR resources and the program set read ahead of the first world.
+  - `38af64f1` (#2213), two parts: the sources of a program set go through the preprocessor on the transform threads
+    while the set reads them (`ShaderPack.preprocessInParallel`; a source that fails is preprocessed again by the
+    reader, so errors surface where they did), and `ConstDirectiveParser` looks only at lines that have `const` in them.
+    Not carried over: the preprocessor's disk cache, files read in parallel, `IdMap` and the language map built in the
+    background, programs kept across pipelines (`RetainedPrograms`), the pack parsed ahead while shaders are off.
 - Later non-core Iris fixes from newer Angelica are to be carried over one by one.
