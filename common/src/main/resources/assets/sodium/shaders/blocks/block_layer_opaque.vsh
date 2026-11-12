@@ -47,7 +47,11 @@ vec4 _sample_lightmap(sampler2D lightMap, ivec2 uv) {
 #ifdef VERT_HAS_a_LightTint
 // Devilica: coloured block light tints the block light part of the lightmap only. The lightmap adds sky and block
 // light, so the tinted sum against the plain one leaves daylight as it is and shows the colour at night and in caves.
-vec3 _block_light_tint(vec3 tint, ivec2 uv) {
+// The tint's alpha is the level of the light the field knows (1.0 for 15). Block light beyond it comes from sources
+// the field has no account of and keeps its own colour; one level of slack covers the rounding of both sides.
+vec3 _block_light_tint(vec4 field, ivec2 uv) {
+    float level = max(float(uv.x) / 16.0, 1.0);
+    vec3 tint = mix(vec3(1.0), field.rgb, clamp((field.a * 15.0 + 1.0) / level, 0.0, 1.0));
     vec3 sky = _sample_lightmap(u_LightTex, ivec2(0, uv.y)).rgb;
     vec3 block = _sample_lightmap(u_LightTex, ivec2(uv.x, 0)).rgb;
     vec3 plain = min(sky + block, vec3(1.0));
@@ -85,7 +89,7 @@ void main() {
 #else
     vec4 lightColor = _sample_lightmap(u_LightTex, _vert_tex_light_coord);
 #ifdef VERT_HAS_a_LightTint
-    lightColor.rgb *= _block_light_tint(a_LightTint.rgb, _vert_tex_light_coord);
+    lightColor.rgb *= _block_light_tint(a_LightTint, _vert_tex_light_coord);
 #endif
     v_Color = _vert_color * lightColor;
     v_RdhFactor.rgb *= lightColor.rgb;

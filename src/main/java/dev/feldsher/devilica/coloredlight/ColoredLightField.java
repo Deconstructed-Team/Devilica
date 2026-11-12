@@ -76,6 +76,14 @@ public final class ColoredLightField {
         this.sourceBlock = this.colored && state.getLightValue() > 0;
     }
 
+    /**
+     * Called after the section's last block. Blocks drawn through vanilla's buffer get their vertices only now, and
+     * the last block's answer stood for all of them: a section that ended on a light lost its colour altogether.
+     */
+    public void endBlocks() {
+        this.sourceBlock = false;
+    }
+
     /** Works out the colour for the section whose lowest corner is at the given block */
     public void compute(WorldSlice slice, int minX, int minY, int minZ) {
         this.colored = false;
@@ -119,6 +127,7 @@ public final class ColoredLightField {
         float r = 0;
         float g = 0;
         float b = 0;
+        float lit = 0;
         for (int corner = 0; corner < 8; corner++) {
             final int dx = corner & 1;
             final int dy = corner >> 1 & 1;
@@ -131,6 +140,7 @@ public final class ColoredLightField {
             r += weight * (cell >> 16 & 0xFF);
             g += weight * (cell >> 8 & 0xFF);
             b += weight * (cell & 0xFF);
+            lit += weight;
         }
         final float max = Math.max(r, Math.max(g, b));
         if (max <= 0) {
@@ -139,7 +149,11 @@ public final class ColoredLightField {
         final int tr = Math.round(r / max * 255);
         final int tg = Math.round(g / max * 255);
         final int tb = Math.round(b / max * 255);
-        return 0xFF000000 | tb << 16 | tg << 8 | tr;
+        // How bright the light the field knows is here (255 for level 15), among the cells that hold any. The shader
+        // weighs the hue by it against the vertex's block light: light the field has no account of (lights that follow
+        // entities, blocks lit by their block entity) keeps its own colour.
+        final int known = Math.min(255, Math.round(max / lit));
+        return known << 24 | tb << 16 | tg << 8 | tr;
     }
 
     /** Box coordinates run from the block below the section's lowest corner (0) to the one past its top (17) */
@@ -236,12 +250,15 @@ public final class ColoredLightField {
         return anyColored;
     }
 
+    /** Within the world's 0..15: mods' blocks report more (a float level above 1 is 15 times it), and the queues are by level */
     private int lightValue(IBlockState state, WorldSlice slice, int x, int y, int z) {
+        int value;
         try {
-            return state.getLightValue(slice, this.pos.setPos(x, y, z));
+            value = state.getLightValue(slice, this.pos.setPos(x, y, z));
         } catch (RuntimeException e) {
-            return state.getLightValue();
+            value = state.getLightValue();
         }
+        return Math.max(0, Math.min(15, value));
     }
 
     private static int channel(int level, int color) {
