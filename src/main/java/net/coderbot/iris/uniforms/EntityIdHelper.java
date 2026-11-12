@@ -12,6 +12,7 @@ import net.minecraft.entity.effect.EntityLightningBolt;
 import net.minecraft.entity.monster.EntityZombie;
 import net.minecraft.entity.monster.EntityZombieVillager;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.util.ResourceLocation;
 
 /**
  * Shared utility for resolving entity IDs with support for special entities and caching.
@@ -19,6 +20,7 @@ import net.minecraft.entity.player.EntityPlayer;
 public final class EntityIdHelper {
     private static final NamespacedId CONVERTING_VILLAGER = new NamespacedId("minecraft", "zombie_villager_converting");
     private static final NamespacedId CURRENT_PLAYER = new NamespacedId("minecraft", "current_player");
+    private static final NamespacedId PLAYER = new NamespacedId("minecraft", "player");
     private static final NamespacedId LIGHTNING_BOLT_ID = new NamespacedId("minecraft", "lightning_bolt");
 
     private static final Object2IntMap<Class<?>> entityIdCache = new Object2IntOpenHashMap<>();
@@ -113,6 +115,19 @@ public final class EntityIdHelper {
      * 4. Special hardcoded cases       (e.g., "minecraft:lightning_bolt")
      */
     private static int resolveEntityId(Entity entity, Class<?> entityClass, Object2IntFunction<NamespacedId> entityIdMap) {
+        // Devilica: the registry name first (minecraft:villager_golem), which is what packs write for 1.12.2. The name
+        // the base asks by is here the one from before 1.11 ("VillagerGolem"), and matched none of them. Players are
+        // in no registry.
+        final ResourceLocation key = EntityList.getKey(entity);
+        if (key != null) {
+            final int byKey = entityIdMap.applyAsInt(new NamespacedId(key.getNamespace(), key.getPath()));
+            if (byKey != -1) {
+                return byKey;
+            }
+        } else if (entity instanceof EntityPlayer) {
+            return entityIdMap.applyAsInt(PLAYER);
+        }
+
         // Try registered entity name first (most common)
         String entityType = EntityList.getEntityString(entity);
         if (entityType != null) {
