@@ -9,10 +9,6 @@ import net.coderbot.iris.shaderpack.option.menu.OptionMenuBooleanOptionElement;
 import net.minecraft.client.resources.I18n;
 
 public class BooleanElementWidget extends BaseOptionElementWidget<OptionMenuBooleanOptionElement> {
-	private static final String TEXT_TRUE = I18n.format("label.iris.true");
-	private static final String TEXT_FALSE = I18n.format("label.iris.false");
-	private static final String TEXT_TRUE_DEFAULT = I18n.format("label.iris.true");
-	private static final String TEXT_FALSE_DEFAULT = I18n.format("label.iris.false");
 
 	private final BooleanOption option;
 
@@ -64,10 +60,10 @@ public class BooleanElementWidget extends BaseOptionElementWidget<OptionMenuBool
 		// default to avoid giving a positive or negative connotation to a
 		// default value.
 		if (this.value == this.defaultValue) {
-			return this.value ? TEXT_TRUE_DEFAULT : TEXT_FALSE_DEFAULT;
+			return this.value ? I18n.format("label.iris.true") : I18n.format("label.iris.false");
 		}
 
-		return this.value ? TEXT_TRUE : TEXT_FALSE;
+		return this.value ? I18n.format("label.iris.true") : I18n.format("label.iris.false");
 	}
 
 	@Override

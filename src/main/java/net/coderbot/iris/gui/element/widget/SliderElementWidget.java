@@ -5,6 +5,7 @@ import net.coderbot.iris.shaderpack.option.menu.OptionMenuStringOptionElement;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiScreen;
+import net.minecraft.client.resources.I18n;
 import net.minecraft.util.math.MathHelper;
 
 public class SliderElementWidget extends StringElementWidget {
@@ -28,7 +29,7 @@ public class SliderElementWidget extends StringElementWidget {
 		}
 
 		if (GuiScreen.isShiftKeyDown()) {
-			renderTooltip(SET_TO_DEFAULT, mouseX, mouseY, hovered);
+			renderTooltip(I18n.format("options.iris.setToDefault"), mouseX, mouseY, hovered);
 		} else if (!this.screen.isDisplayingComment()) {
 			renderTooltip(this.unmodifiedLabel, mouseX, mouseY, hovered);
 		}

@@ -15,8 +15,6 @@ import net.minecraft.client.resources.I18n;
 import java.util.Optional;
 
 public class ProfileElementWidget extends BaseOptionElementWidget<OptionMenuProfileElement> {
-	private static final String PROFILE_LABEL = I18n.format("options.iris.profile");
-	private static final String PROFILE_CUSTOM = I18n.format("options.iris.profile.custom");
 
 	private Profile next;
 	private Profile previous;
@@ -29,7 +27,7 @@ public class ProfileElementWidget extends BaseOptionElementWidget<OptionMenuProf
 	@Override
 	public void init(ShaderPackScreen screen, NavigationController navigation) {
 		super.init(screen, navigation);
-		this.setLabel(PROFILE_LABEL);
+		this.setLabel(I18n.format("options.iris.profile"));
 
 		final ProfileSet profiles = this.element.profiles;
         final OptionSet options = this.element.options;
@@ -41,12 +39,12 @@ public class ProfileElementWidget extends BaseOptionElementWidget<OptionMenuProf
 		this.previous = result.previous;
         final Optional<String> profileName = result.current.map(p -> p.name);
 
-		this.profileLabel = profileName.map(name -> GuiUtil.translateOrDefault(name, "profile." + name)).orElse(PROFILE_CUSTOM);
+		this.profileLabel = profileName.map(name -> GuiUtil.translateOrDefault(name, "profile." + name)).orElse(I18n.format("options.iris.profile.custom"));
 	}
 
 	@Override
 	public void drawScreen(int x, int y, int width, int height, int mouseX, int mouseY, float tickDelta, boolean hovered) {
-		this.updateRenderParams(width, width - (Minecraft.getMinecraft().fontRenderer.getStringWidth(PROFILE_LABEL) + 16));
+		this.updateRenderParams(width, width - (Minecraft.getMinecraft().fontRenderer.getStringWidth(I18n.format("options.iris.profile")) + 16));
 
 		this.renderOptionWithValue(x, y, width, height, hovered);
 	}
@@ -58,7 +56,7 @@ public class ProfileElementWidget extends BaseOptionElementWidget<OptionMenuProf
 
 	@Override
 	public Optional<String> getCommentTitle() {
-		return Optional.of(PROFILE_LABEL);
+		return Optional.of(I18n.format("options.iris.profile"));
 	}
 
 	@Override

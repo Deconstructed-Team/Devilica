@@ -10,9 +10,6 @@ import net.minecraft.client.resources.I18n;
 import java.util.function.Function;
 
 public class TopButtonRowEntry extends BaseEntry {
-    private static final String NONE_PRESENT_LABEL = I18n.format("options.iris.shaders.nonePresent"); //.withStyle(ChatFormatting.GRAY);
-    private static final String SHADERS_DISABLED_LABEL = I18n.format("options.iris.shaders.disabled");
-    private static final String SHADERS_ENABLED_LABEL = I18n.format("options.iris.shaders.enabled");
     private static final int REFRESH_BUTTON_WIDTH = 18;
 
     private final ShaderPackSelectionList shaderPackSelectionList;
@@ -64,7 +61,7 @@ public class TopButtonRowEntry extends BaseEntry {
     }
 
     private String getEnableDisableLabel() {
-        return this.allowEnableShadersButton ? this.shadersEnabled ? SHADERS_ENABLED_LABEL : SHADERS_DISABLED_LABEL : NONE_PRESENT_LABEL;
+        return this.allowEnableShadersButton ? this.shadersEnabled ? I18n.format("options.iris.shaders.enabled") : I18n.format("options.iris.shaders.disabled") : I18n.format("options.iris.shaders.nonePresent");
     }
 
     public boolean mouseClicked(double mouseX, double mouseY, int button) {

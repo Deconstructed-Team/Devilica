@@ -40,8 +40,6 @@ public class ShaderPackScreen extends GuiScreen implements HudHideable {
      */
     public static final Set<Runnable> TOP_LAYER_RENDER_QUEUE = new HashSet<>();
 
-    private static final String SELECT_TITLE = I18n.format("pack.iris.select.title");
-    private static final String CONFIGURE_TITLE = I18n.format("pack.iris.configure.title");
     private static final int COMMENT_PANEL_WIDTH = 314;
 
     private final GuiScreen parent;
@@ -134,9 +132,9 @@ public class ShaderPackScreen extends GuiScreen implements HudHideable {
                 drawCenteredString(this.fontRenderer, notificationDialog, (int) (this.width * 0.5), 21, 0xFFFFFF);
             } else {
                 if (optionMenuOpen) {
-                    drawCenteredString(this.fontRenderer, CONFIGURE_TITLE, (int) (this.width * 0.5), 21, 0xFFFFFF);
+                    drawCenteredString(this.fontRenderer, I18n.format("pack.iris.configure.title"), (int) (this.width * 0.5), 21, 0xFFFFFF);
                 } else {
-                    drawCenteredString(this.fontRenderer, SELECT_TITLE, (int) (this.width * 0.5), 21, 0xFFFFFF);
+                    drawCenteredString(this.fontRenderer, I18n.format("pack.iris.select.title"), (int) (this.width * 0.5), 21, 0xFFFFFF);
                 }
             }
 

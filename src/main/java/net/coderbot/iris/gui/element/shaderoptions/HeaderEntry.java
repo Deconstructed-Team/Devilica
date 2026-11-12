@@ -15,17 +15,6 @@ import org.jetbrains.annotations.Nullable;
 
 public class HeaderEntry extends BaseEntry {
 
-    public static final String BACK_BUTTON_TEXT = TextFormatting.ITALIC + "< " + I18n.format("options.iris.back");
-    public static final String RESET_BUTTON_TEXT_INACTIVE = TextFormatting.GRAY + I18n.format("options.iris.reset");
-    public static final String RESET_BUTTON_TEXT_ACTIVE = TextFormatting.YELLOW + I18n.format("options.iris.reset");
-
-    public static final String RESET_HOLD_SHIFT_TOOLTIP = TextFormatting.BOLD + I18n.format("options.iris.reset.tooltip.holdShift");
-    public static final String RESET_TOOLTIP = TextFormatting.RED + I18n.format("options.iris.reset.tooltip");
-    public static final String IMPORT_TOOLTIP = I18n.format("options.iris.importSettings.tooltip");
-    //				.withStyle(style -> style.withColor(TextColor.fromRgb(0x4da6ff)));
-    public static final String EXPORT_TOOLTIP = I18n.format("options.iris.exportSettings.tooltip");
-    //				.withStyle(style -> style.withColor(TextColor.fromRgb(0xfc7d3d)));
-
     private static final int MIN_SIDE_BUTTON_WIDTH = 42;
     private static final int BUTTON_HEIGHT = 16;
 
@@ -41,18 +30,20 @@ public class HeaderEntry extends BaseEntry {
         super(navigation);
 
         if (hasBackButton) {
-            this.backButton = new IrisElementRow().add(new IrisElementRow.TextButtonElement(BACK_BUTTON_TEXT, this::backButtonClicked),
-                Math.max(MIN_SIDE_BUTTON_WIDTH, Minecraft.getMinecraft().fontRenderer.getStringWidth(BACK_BUTTON_TEXT) + 8));
+            final String backText = TextFormatting.ITALIC + "< " + I18n.format("options.iris.back");
+            this.backButton = new IrisElementRow().add(new IrisElementRow.TextButtonElement(backText, this::backButtonClicked),
+                Math.max(MIN_SIDE_BUTTON_WIDTH, Minecraft.getMinecraft().fontRenderer.getStringWidth(backText) + 8));
         } else {
             this.backButton = null;
         }
 
-        this.resetButton = new IrisElementRow.TextButtonElement(RESET_BUTTON_TEXT_INACTIVE, this::resetButtonClicked);
+        final String resetText = TextFormatting.GRAY + I18n.format("options.iris.reset");
+        this.resetButton = new IrisElementRow.TextButtonElement(resetText, this::resetButtonClicked);
         this.importButton = new IrisElementRow.IconButtonElement(GuiUtil.Icon.IMPORT, GuiUtil.Icon.IMPORT_COLORED, this::importSettingsButtonClicked);
         this.exportButton = new IrisElementRow.IconButtonElement(GuiUtil.Icon.EXPORT, GuiUtil.Icon.EXPORT_COLORED, this::exportSettingsButtonClicked);
 
         this.utilityButtons.add(this.importButton, 15).add(this.exportButton, 15)
-            .add(this.resetButton, Math.max(MIN_SIDE_BUTTON_WIDTH, Minecraft.getMinecraft().fontRenderer.getStringWidth((RESET_BUTTON_TEXT_INACTIVE) + 8)));
+            .add(this.resetButton, Math.max(MIN_SIDE_BUTTON_WIDTH, Minecraft.getMinecraft().fontRenderer.getStringWidth(resetText) + 8));
 
         this.screen = screen;
         this.text = text;
@@ -79,22 +70,22 @@ public class HeaderEntry extends BaseEntry {
 
         // Set the appearance of the reset button
         this.resetButton.disabled = !shiftDown;
-        this.resetButton.text = shiftDown ? RESET_BUTTON_TEXT_ACTIVE : RESET_BUTTON_TEXT_INACTIVE;
+        this.resetButton.text = shiftDown ? TextFormatting.YELLOW + I18n.format("options.iris.reset") : TextFormatting.GRAY + I18n.format("options.iris.reset");
 
         // Draw the utility buttons
         this.utilityButtons.renderRightAligned((x + slotWidth) - 3, y, BUTTON_HEIGHT, mouseX, mouseY, tickDelta, isMouseOver);
 
         // Draw the reset button's tooltip
         if (this.resetButton.isHovered()) {
-            final String tooltip = shiftDown ? RESET_TOOLTIP : RESET_HOLD_SHIFT_TOOLTIP;
+            final String tooltip = shiftDown ? TextFormatting.RED + I18n.format("options.iris.reset.tooltip") : TextFormatting.BOLD + I18n.format("options.iris.reset.tooltip.holdShift");
             queueBottomRightAnchoredTooltip(mouseX, mouseY, font, tooltip);
         }
         // Draw the import/export button tooltips
         if (this.importButton.isHovered()) {
-            queueBottomRightAnchoredTooltip(mouseX, mouseY, font, IMPORT_TOOLTIP);
+            queueBottomRightAnchoredTooltip(mouseX, mouseY, font, I18n.format("options.iris.importSettings.tooltip"));
         }
         if (this.exportButton.isHovered()) {
-            queueBottomRightAnchoredTooltip(mouseX, mouseY, font, EXPORT_TOOLTIP);
+            queueBottomRightAnchoredTooltip(mouseX, mouseY, font, I18n.format("options.iris.exportSettings.tooltip"));
         }
     }
 

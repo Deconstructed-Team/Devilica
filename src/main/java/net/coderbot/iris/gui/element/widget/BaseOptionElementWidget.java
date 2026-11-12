@@ -13,7 +13,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Optional;
 
 public abstract class BaseOptionElementWidget<T extends OptionMenuElement> extends CommentedElementWidget<T> {
-	protected static final String SET_TO_DEFAULT = I18n.format("options.iris.setToDefault");
 	protected static final String DIVIDER = ": ";
 
 	protected String unmodifiedLabel;
@@ -101,7 +100,7 @@ public abstract class BaseOptionElementWidget<T extends OptionMenuElement> exten
 
 	protected final void tryRenderTooltip(int mouseX, int mouseY, boolean hovered) {
 		if (GuiScreen.isShiftKeyDown()) {
-			renderTooltip(SET_TO_DEFAULT, mouseX, mouseY, hovered);
+			renderTooltip(I18n.format("options.iris.setToDefault"), mouseX, mouseY, hovered);
 		} else if (this.isLabelTrimmed && !this.screen.isDisplayingComment()) {
 			renderTooltip(this.unmodifiedLabel, mouseX, mouseY, hovered);
 		}
