@@ -20,6 +20,10 @@ import java.util.OptionalInt;
 
 public interface WorldRenderingPipeline {
 	void beginLevelRendering();
+
+	/** Devilica: drops what a frame that threw midway left in use. */
+	default void abandonFrame() {
+	}
 	void renderShadows(EntityRenderer levelRenderer, Camera camera);
 	void addDebugText(List<String> messages);
 	OptionalInt getForcedShadowRenderDistanceChunksForDisplay();

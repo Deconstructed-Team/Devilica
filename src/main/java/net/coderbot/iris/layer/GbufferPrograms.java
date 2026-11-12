@@ -19,6 +19,17 @@ public class GbufferPrograms {
 		}
 	}
 
+	// Devilica: a frame that threw between a begin and its end (the game can survive a crash in a world) left the flag
+	// set, and the next begin threw on it, in every world joined after
+	public static void abandon() {
+		if (entities || blockEntities || outline) {
+			entities = false;
+			blockEntities = false;
+			outline = false;
+			setPhase(WorldRenderingPhase.NONE);
+		}
+	}
+
 	public static void beginEntities() {
 		checkReentrancy();
 		setPhase(WorldRenderingPhase.ENTITIES);

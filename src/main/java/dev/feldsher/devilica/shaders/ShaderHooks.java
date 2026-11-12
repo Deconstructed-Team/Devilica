@@ -83,6 +83,24 @@ public final class ShaderHooks {
      * Around the world's entity loop: the entity program stays bound for every entity, which only changes the entity
      * ID ({@code RenderManagerMixin}). Switching the program per entity cost about 30 µs each.
      */
+    /**
+     * The game can survive a crash in a world. A frame that threw midway left its phase flags, the pack's pass and its
+     * program in use: the next world frame threw on the flags, in every world joined after. Called when a world frame
+     * starts and when the game leaves a world.
+     */
+    public static void abandonFrame() {
+        if (!Iris.enabled) {
+            return;
+        }
+        GbufferPrograms.abandon();
+        HandRenderer.INSTANCE.abandon();
+        RenderScale.abandon();
+        final WorldRenderingPipeline pipeline = Iris.getPipelineManager().getPipelineNullable();
+        if (pipeline != null) {
+            pipeline.abandonFrame();
+        }
+    }
+
     public static void beginEntities() {
         if (Iris.enabled) {
             GbufferPrograms.beginEntities();

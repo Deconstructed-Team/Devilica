@@ -1390,11 +1390,13 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 			isRenderingShadow = true;
 			matchPass();  // Ensure shadow shader is bound for entity rendering
 
-			shadowRenderer.renderShadows(levelRenderer, playerCamera);
-
-			// needed to remove blend mode overrides and similar
-			beginPass(null);
-			isRenderingShadow = false;
+			try {
+				shadowRenderer.renderShadows(levelRenderer, playerCamera);
+			} finally {
+				// needed to remove blend mode overrides and similar
+				beginPass(null);
+				isRenderingShadow = false;
+			}
 		}
 
 		if (!shouldRenderPrepareBeforeShadow) {
@@ -1425,6 +1427,21 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 	// TODO: better way to avoid this global state?
 	private boolean isRenderingWorld = false;
 	private boolean isRenderingFullScreenPass = false;
+
+	@Override
+	public void abandonFrame() {
+		if (isRenderingWorld) {
+			Iris.logger.warn("The last frame's level rendering did not finish; dropping its pass");
+		}
+		if (current != null) {
+			beginPass(null);
+		}
+		isRenderingWorld = false;
+		isRenderingShadow = false;
+		isRenderingFullScreenPass = false;
+		phase = WorldRenderingPhase.NONE;
+		overridePhase = null;
+	}
 
 	@Override
 	public void beginLevelRendering() {

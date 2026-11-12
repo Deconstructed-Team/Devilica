@@ -178,6 +178,11 @@ public class HandRenderer {
         GL11.glMatrixMode(GL11.GL_MODELVIEW);
     }
 
+    public void abandon() {
+        ACTIVE = false;
+        renderingSolid = false;
+    }
+
     public boolean isActive() {
         return ACTIVE;
     }

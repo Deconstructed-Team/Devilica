@@ -11,6 +11,7 @@ import com.gtnewhorizons.angelica.mixins.interfaces.EntityRendererAccessor;
 import com.gtnewhorizons.angelica.rendering.RenderingState;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import dev.feldsher.devilica.shaders.ShaderHooks;
 import net.coderbot.iris.Iris;
 import net.coderbot.iris.gl.program.Program;
 import net.coderbot.iris.pipeline.HandRenderer;
@@ -30,6 +31,7 @@ import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.settings.GameSettings;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
+import org.lwjgl.opengl.GL11;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -81,6 +83,7 @@ public abstract class EntityRendererMixin implements EntityRendererAccessor {
         SystemTimeUniforms.TIMER.beginFrame(System.nanoTime());
 
         Program.unbind();
+        ShaderHooks.abandonFrame();
 
         this.devilica$pipeline = Iris.getPipelineManager().preparePipeline(Iris.getCurrentDimensionName());
         this.devilica$pipeline.beginLevelRendering();
@@ -163,6 +166,11 @@ public abstract class EntityRendererMixin implements EntityRendererAccessor {
         this.devilica$pipeline = null;
         Program.unbind();
         GLStateManager.glDepthMask(true);
+        if (IrisApi.getInstance().isShaderPackInUse()) {
+            // The pack's full-screen passes switch the alpha test off; vanilla hands the world's last event the test on
+            GLStateManager.enableAlphaTest();
+            GLStateManager.glAlphaFunc(GL11.GL_GREATER, 0.1F);
+        }
     }
 
     /** With a shader pack, Iris draws the first-person hand itself, in its own passes. */

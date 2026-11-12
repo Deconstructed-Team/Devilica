@@ -74,6 +74,11 @@ public final class RenderScale {
         worldTarget.bindFramebuffer(true);
     }
 
+    /** A frame that threw midway never reached {@link #end()}: its picture is not stretched over what comes next */
+    public static void abandon() {
+        active = false;
+    }
+
     /** After the world is drawn: stretches it into Minecraft's main framebuffer and binds that for the GUI */
     public static void end() {
         if (!active) {
