@@ -27,6 +27,7 @@ public class HandRenderer {
     public static final HandRenderer INSTANCE = new HandRenderer();
 
     private boolean ACTIVE;
+    private boolean handEventPosted;
     private @Getter boolean renderingSolid;
     public static final float DEPTH = 0.125F;
 
@@ -99,11 +100,6 @@ public class HandRenderer {
         }
         Minecraft mc = Minecraft.getMinecraft();
 
-        // Forge's RenderHandEvent, which vanilla's renderHand posts; a mod that cancels it draws the hand itself
-        if (ForgeHooksClient.renderFirstPersonHand(mc.renderGlobal, tickDelta, 2)) {
-            return;
-        }
-
         ACTIVE = true;
 
         pipeline.setPhase(WorldRenderingPhase.HAND_SOLID);
@@ -118,9 +114,15 @@ public class HandRenderer {
         GbufferPrograms.setBlockEntityDefaults();
 
         renderingSolid = true;
-        mc.entityRenderer.enableLightmap();
-        mc.entityRenderer.itemRenderer.renderItemInFirstPerson(tickDelta);
-        mc.entityRenderer.disableLightmap();
+        // Forge's RenderHandEvent, which vanilla's renderHand posts. Here it goes out once a frame, under the hand's
+        // matrices as vanilla has them and in the pack's hand pass: a mod that cancels it and draws the arm itself
+        // drew it under the world's matrices first, and then again over the finished frame, past the pack.
+        handEventPosted = true;
+        if (!ForgeHooksClient.renderFirstPersonHand(mc.renderGlobal, tickDelta, 2)) {
+            mc.entityRenderer.enableLightmap();
+            mc.entityRenderer.itemRenderer.renderItemInFirstPerson(tickDelta);
+            mc.entityRenderer.disableLightmap();
+        }
 
         GLStateManager.defaultBlendFunc();
         GLStateManager.glDepthMask(false);
@@ -181,6 +183,14 @@ public class HandRenderer {
     public void abandon() {
         ACTIVE = false;
         renderingSolid = false;
+        handEventPosted = false;
+    }
+
+    /** Whether this frame's hand pass has posted Forge's RenderHandEvent, so vanilla's renderHand must not again */
+    public boolean takeHandEventPosted() {
+        final boolean posted = handEventPosted;
+        handEventPosted = false;
+        return posted;
     }
 
     public boolean isActive() {

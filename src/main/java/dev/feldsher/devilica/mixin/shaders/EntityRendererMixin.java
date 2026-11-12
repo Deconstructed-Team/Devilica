@@ -181,6 +181,12 @@ public abstract class EntityRendererMixin implements EntityRendererAccessor {
         }
     }
 
+    /** The pack's hand pass has posted Forge's RenderHandEvent for this frame; vanilla's hand is not drawn after it. */
+    @WrapOperation(method = "renderHand", at = @At(value = "INVOKE", target = "Lnet/minecraftforge/client/ForgeHooksClient;renderFirstPersonHand(Lnet/minecraft/client/renderer/RenderGlobal;FI)Z", remap = false))
+    private boolean devilica$handEventOnce(RenderGlobal context, float partialTicks, int renderPass, Operation<Boolean> original) {
+        return HandRenderer.INSTANCE.takeHandEventPosted() || original.call(context, partialTicks, renderPass);
+    }
+
     @WrapOperation(method = "updateRenderer", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/renderer/EntityRenderer;addRainParticles()V"))
     private void devilica$rainParticles(EntityRenderer instance, Operation<Void> original) {
         final WorldRenderingPipeline pipeline = Iris.getPipelineManager().getPipelineNullable();
