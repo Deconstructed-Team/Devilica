@@ -73,6 +73,20 @@ packs' `#version 120` code runs as written, as it did in that Angelica.
 - `PipelineManager` keeps the pipeline over a dimension change when the pack draws both dimensions with the same
   program set. `ShaderPack` resolves the vanilla dimensions by their ids too (`minecraft:the_nether`, from newer
   Angelica's dimension flattening) and draws dimensions the pack does not name with `world0` (newer Angelica, #2137).
+- Modern `block.properties`, from newer Angelica (#1626, #1635, #1631, #1696, #1815, the tokenizer of #1771, the
+  liquid levels of #1831, the properties files of #1868): a pack that names blocks as 1.13+ does is read with a modern
+  `MC_VERSION` (`modernFallbackMcVersion`, 260101) and its names go through `FlatteningMap`. What differs: the table is
+  written for 1.12.2 and maps to block state properties, not metadata, so a pack's own state properties are matched
+  against the 1.12.2 block (those it lacks match anything; nothing is waterlogged), and blocks 1.13+ added are left out.
+  Angelica looks for a 1.7.10 section; here `IdMap` reads the file with the game's version and with 1.13's, and a pack
+  with entries for 1.12.2 alone, or with no block name the flattening brought, is read exactly as before. The modern
+  version is for `block`, `item` and `entity.properties` only: shader sources and `shaders.properties` keep 11202.
+  Entity names get their 1.12.2 names, and the pre-1.11 ones `EntityIdHelper` looks up by, for such packs only.
+  `LegacyIdMap` gives a pack without `block.properties` the block IDs as they are, OptiFine on 1.12.2 passes 16 bits.
+  Not carried over: NBT matching (#1771, #2267; conditions are parsed and their entries skipped, Angelica matches them
+  in its chunk mesher, and 1.12.2 has states and entity types for what 1.7.10 keeps in NBT) and the lookups by actual
+  state: `snowy=true` entries wait under `SNOWY_META_BIT`, which the mesher does not set yet, and the top halves of
+  double plants and the contents of flower pots are matched by metadata, so every variant shares them.
 - Per-buffer blend overrides: no `glIsEnabled` after each toggle (the cached flag is draw buffer 0's), and the
   game's blend state is put back for every draw buffer past vanilla's cache (the base's `setUnknownState`).
 - Uniforms updated once a tick go by the total world time; `relativeEyePosition` is the camera as seen from the eye,
