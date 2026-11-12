@@ -153,4 +153,9 @@ packs' `#version 120` code runs as written, as it did in that Angelica.
   draws with here), and left the fourth set, a lightmap without a texture, to be transformed on the render thread while
   the passes were built. Small ones from newer Angelica: `NamespacedId` keeps its hash (`d876a203`), the unchanged-value
   returns of `BlendModeStorage`'s deferrals (`a07cecb8`). PBR image resources are closed after reading.
+- Carried over from newer Angelica, third round (the parts of large Distant Horizons, SDL and refactoring commits that
+  matter without them):
+  - `057ea803` (#1553): `cameraPositionInt` and `cameraPositionFract` and their previous values no longer allocate a
+    vector per program each frame; the integer vector uniform copies the value it is handed. Angelica's own version
+    hands back the current position as the previous one, which is not carried over.
 - Later non-core Iris fixes from newer Angelica are to be carried over one by one.
