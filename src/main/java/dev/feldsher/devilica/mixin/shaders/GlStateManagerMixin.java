@@ -58,6 +58,7 @@ public abstract class GlStateManagerMixin {
     private static void devilica$enableBlend(CallbackInfo ci) {
         if (Iris.enabled && BlendModeStorage.isBlendLocked()) {
             BlendModeStorage.deferBlendModeToggle(true);
+            BlendModeStorage.gameBlendChanged();
             ci.cancel();
         }
     }
@@ -66,6 +67,7 @@ public abstract class GlStateManagerMixin {
     private static void devilica$disableBlend(CallbackInfo ci) {
         if (Iris.enabled && BlendModeStorage.isBlendLocked()) {
             BlendModeStorage.deferBlendModeToggle(false);
+            BlendModeStorage.gameBlendChanged();
             ci.cancel();
         }
     }
@@ -74,6 +76,7 @@ public abstract class GlStateManagerMixin {
     private static void devilica$blendFunc(int srcFactor, int dstFactor, CallbackInfo ci) {
         if (Iris.enabled && BlendModeStorage.isBlendLocked()) {
             BlendModeStorage.deferBlendFunc(srcFactor, dstFactor, srcFactor, dstFactor);
+            BlendModeStorage.gameBlendChanged();
             ci.cancel();
         }
     }
@@ -82,6 +85,7 @@ public abstract class GlStateManagerMixin {
     private static void devilica$tryBlendFuncSeparate(int srcRgb, int dstRgb, int srcAlpha, int dstAlpha, CallbackInfo ci) {
         if (Iris.enabled && BlendModeStorage.isBlendLocked()) {
             BlendModeStorage.deferBlendFunc(srcRgb, dstRgb, srcAlpha, dstAlpha);
+            BlendModeStorage.gameBlendChanged();
             ci.cancel();
         }
     }
@@ -91,6 +95,7 @@ public abstract class GlStateManagerMixin {
     private static void devilica$blendChanged(CallbackInfo ci) {
         if (Iris.enabled) {
             StateUpdateNotifiers.blendFuncNotifier.run();
+            BlendModeStorage.gameBlendChanged();
         }
     }
 
@@ -210,19 +215,27 @@ public abstract class GlStateManagerMixin {
         }
     }
 
-    // ---- draws: a blend change deferred during an override applies once the override ends, before the next draw
+    // ---- draws: a blend change deferred during an override applies once the override ends, before the next draw;
+    // a pass that depends on the game's blending is matched again here, not at every change
 
     @Inject(method = "glDrawArrays", at = @At("HEAD"))
     private static void devilica$beforeDrawArrays(int mode, int first, int count, CallbackInfo ci) {
         if (Iris.enabled) {
-            BlendModeStorage.flushDeferredBlend();
+            BlendModeStorage.beforeDraw();
         }
     }
 
     @Inject(method = "callList", at = @At("HEAD"))
     private static void devilica$beforeCallList(int list, CallbackInfo ci) {
         if (Iris.enabled) {
-            BlendModeStorage.flushDeferredBlend();
+            BlendModeStorage.beforeDraw();
+        }
+    }
+
+    @Inject(method = "glBegin", at = @At("HEAD"))
+    private static void devilica$beforeBegin(int mode, CallbackInfo ci) {
+        if (Iris.enabled) {
+            BlendModeStorage.beforeDraw();
         }
     }
 }

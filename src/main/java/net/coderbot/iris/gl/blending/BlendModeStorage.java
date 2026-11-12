@@ -4,6 +4,7 @@ import com.gtnewhorizons.angelica.glsm.GLStateManager;
 import com.gtnewhorizons.angelica.glsm.RenderSystem;
 import com.gtnewhorizons.angelica.glsm.states.BlendState;
 import lombok.Getter;
+import org.lwjgl.opengl.GL11;
 
 public class BlendModeStorage {
 	private static final int MAX_DRAW_BUFFERS = 8;
@@ -12,6 +13,9 @@ public class BlendModeStorage {
 	private static final BlendState originalBlend = new BlendState();
 	@Getter private static boolean blendLocked;
 	@Getter private static boolean hasDeferredChanges;
+	private static boolean globalOverride;
+	private static Runnable gameBlendWatcher;
+	private static boolean gameBlendChanged;
 	private static final int[] bufferOverrideIndices = new int[MAX_DRAW_BUFFERS];
 	private static final boolean[] bufferOverrideIsDisable = new boolean[MAX_DRAW_BUFFERS];
 	private static final BlendState[] bufferOverrideStates = new BlendState[MAX_DRAW_BUFFERS];
@@ -33,6 +37,7 @@ public class BlendModeStorage {
 		final boolean buffersTouched = bufferOverrideCount > 0;
 		bufferOverrideCount = 0;
 		hasDeferredChanges = false;
+		globalOverride = true;
 		blendLocked = false;
 
 		if (buffersTouched) {
@@ -79,17 +84,52 @@ public class BlendModeStorage {
 	}
 
 	public static void deferBlendModeToggle(boolean enabled) {
+		if (enabled == originalBlendEnable) return;
 		originalBlendEnable = enabled;
 		hasDeferredChanges = true;
 	}
 
 	public static void deferBlendFunc(int srcRgb, int dstRgb, int srcAlpha, int dstAlpha) {
+		if (originalBlend.getSrcRgb() == srcRgb && originalBlend.getDstRgb() == dstRgb
+			&& originalBlend.getSrcAlpha() == srcAlpha && originalBlend.getDstAlpha() == dstAlpha) {
+			return;
+		}
         originalBlend.setAll(srcRgb, dstRgb, srcAlpha, dstAlpha);
 		hasDeferredChanges = true;
 	}
 
+	/**
+	 * Devilica: whether the game itself, whatever a pack's override made of it, is drawing with plain alpha blending.
+	 */
+	public static boolean isGameBlendingAlpha() {
+		if (blendLocked) {
+			return originalBlendEnable && originalBlend.getSrcRgb() == GL11.GL_SRC_ALPHA
+				&& originalBlend.getDstRgb() == GL11.GL_ONE_MINUS_SRC_ALPHA;
+		}
+		return GLStateManager.isBlendingAlpha();
+	}
+
+	/** Devilica: run before the next draw after the game changed its blending, applied or deferred; null for nobody. */
+	public static void watchGameBlend(Runnable watcher) {
+		gameBlendWatcher = watcher;
+		gameBlendChanged = false;
+	}
+
+	public static void gameBlendChanged() {
+		gameBlendChanged = gameBlendWatcher != null;
+	}
+
+	public static void beforeDraw() {
+		if (gameBlendChanged) {
+			gameBlendChanged = false;
+			gameBlendWatcher.run();
+		}
+		flushDeferredBlend();
+	}
+
 	public static void flushDeferredBlend() {
-		if (!blendLocked || !hasDeferredChanges) return;
+		// A program's own blend mode stands until the program goes; only per-buffer overrides let the game's show through
+		if (!blendLocked || !hasDeferredChanges || globalOverride) return;
 		hasDeferredChanges = false;
 		blendLocked = false;
 
@@ -116,6 +156,7 @@ public class BlendModeStorage {
 
 		blendLocked = false;
 		hasDeferredChanges = false;
+		globalOverride = false;
 		final boolean buffersTouched = bufferOverrideCount > 0;
 		bufferOverrideCount = 0;
 

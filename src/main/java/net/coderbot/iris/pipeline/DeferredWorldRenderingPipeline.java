@@ -23,6 +23,7 @@ import net.coderbot.iris.gbuffer_overrides.matching.SpecialCondition;
 import net.coderbot.iris.gbuffer_overrides.state.RenderTargetStateListener;
 import net.coderbot.iris.gl.blending.AlphaTestOverride;
 import net.coderbot.iris.gl.blending.BlendModeOverride;
+import net.coderbot.iris.gl.blending.BlendModeStorage;
 import net.coderbot.iris.gl.blending.BufferBlendOverride;
 import net.coderbot.iris.gl.buffer.ShaderStorageBufferHolder;
 import net.coderbot.iris.gl.buffer.ShaderStorageInfo;
@@ -105,9 +106,6 @@ import java.util.function.Supplier;
  * Encapsulates the compiled shader program objects for the currently loaded shaderpack.
  */
 public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, RenderTargetStateListener  {
-    private final static int SRC_ALPHA = 770;
-    private final static int ONE_MINUS_SRC_ALPHA = 771;
-    private final static int ONE = 1;
 	private final RenderTargets renderTargets;
 
 	@Nullable
@@ -400,6 +398,7 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 				null, ProgramId.Clouds, ProgramId.Clouds,
 				null, ProgramId.DamagedBlock, ProgramId.DamagedBlock,
 				ProgramId.Block, ProgramId.Block, ProgramId.Block,
+				ProgramId.BlockTrans, ProgramId.BlockTrans, ProgramId.BlockTrans,
 				ProgramId.BeaconBeam, ProgramId.BeaconBeam, ProgramId.BeaconBeam,
 				ProgramId.Entities, ProgramId.Entities, ProgramId.Entities,
 				ProgramId.EntitiesTrans, ProgramId.EntitiesTrans, ProgramId.EntitiesTrans,
@@ -514,6 +513,13 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 			this.shadowCompositeRenderer = null;
 			this.shadowRenderer = null;
 		}
+
+		boolean blendSelectsPass = false;
+		for (InputAvailability availability : INPUT_AVAILABILITIES) {
+			blendSelectsPass |= table.match(RenderCondition.ENTITIES, availability) != table.match(RenderCondition.ENTITIES_TRANSLUCENT, availability)
+				|| table.match(RenderCondition.BLOCK_ENTITIES, availability) != table.match(RenderCondition.BLOCK_ENTITIES_TRANSLUCENT, availability);
+		}
+		this.blendSelectsPass = blendSelectsPass;
 
         this.customUniforms.optimise();
 
@@ -763,17 +769,9 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 			case TERRAIN_SOLID, TERRAIN_CUTOUT, TERRAIN_CUTOUT_MIPPED:
 				return RenderCondition.TERRAIN_OPAQUE;
 			case ENTITIES:
-                if (GLStateManager.getBlendState().getSrcRgb() == SRC_ALPHA &&
-                    GLStateManager.getBlendState().getSrcAlpha() == ONE_MINUS_SRC_ALPHA &&
-                    GLStateManager.getBlendState().getDstRgb() == ONE &&
-                    GLStateManager.getBlendState().getDstAlpha() == ONE_MINUS_SRC_ALPHA)
-                {
-					return RenderCondition.ENTITIES_TRANSLUCENT;
-				} else {
-					return RenderCondition.ENTITIES;
-				}
+				return isBlendedAfterDeferred() ? RenderCondition.ENTITIES_TRANSLUCENT : RenderCondition.ENTITIES;
 			case BLOCK_ENTITIES:
-				return RenderCondition.BLOCK_ENTITIES;
+				return isBlendedAfterDeferred() ? RenderCondition.BLOCK_ENTITIES_TRANSLUCENT : RenderCondition.BLOCK_ENTITIES;
 			case DESTROY:
 				return RenderCondition.DESTROY;
 			case HAND_SOLID:
@@ -801,6 +799,29 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 	}
 
 	/**
+	 * Devilica: a pack's translucent entity and block entity programs are written for draws that come after its
+	 * deferred passes: they fog themselves and tint the light behind them. Here that is the second render pass of
+	 * entities and block entities, the one after water; in the first, before the deferred passes, a blending draw keeps
+	 * the opaque program, as it always had. Angelica goes by blending alone.
+	 */
+	private boolean isBlendedAfterDeferred() {
+		return !isBeforeTranslucent && BlendModeStorage.isGameBlendingAlpha();
+	}
+
+	private void gameBlendChanged() {
+		if (isBeforeTranslucent) {
+			return;
+		}
+		final WorldRenderingPhase phase = getPhase();
+		if (phase == WorldRenderingPhase.ENTITIES || phase == WorldRenderingPhase.BLOCK_ENTITIES) {
+			matchPass();
+		}
+	}
+
+	private final Runnable blendWatcher = this::gameBlendChanged;
+	private final boolean blendSelectsPass;
+
+	/**
 	 * Devilica: a program carried over from newer Angelica that the pack does not ship gets no pass of its own built
 	 * from its fallback's source. Its row takes the pass its draws had before the program was read (null is the default
 	 * row): the same program, blend overrides and framebuffers as before, and nothing compiled a second time.
@@ -809,6 +830,12 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 	private static ProgramId ownProgramOrBefore(ProgramSet programs, @Nullable ProgramId id) {
 		if (id == ProgramId.ParticlesTrans && programs.getGbuffersParticlesTrans().isEmpty()) {
 			id = ProgramId.Particles;
+		}
+
+		if (id == ProgramId.EntitiesTrans && programs.getGbuffersEntitiesTrans().isEmpty()) {
+			return ProgramId.Entities;
+		} else if (id == ProgramId.BlockTrans && programs.getGbuffersBlockTrans().isEmpty()) {
+			return ProgramId.Block;
 		}
 
 		if (id == ProgramId.Particles && programs.getGbuffersParticles().isEmpty()) {
@@ -1115,6 +1142,7 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 	public void destroy() {
 		BlendModeOverride.restore();
 		AlphaTestOverride.restore();
+		BlendModeStorage.watchGameBlend(null);
 
 		destroyPasses(table);
 
@@ -1540,6 +1568,7 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 		overridePhase = null;
 		declaredTranslucent = null;
 		special = null;
+		BlendModeStorage.watchGameBlend(null);
 	}
 
 	@Override
@@ -1566,6 +1595,8 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 			Iris.logger.warn("The last frame's level rendering did not finish; ending its pass");
 			beginPass(null);
 		}
+
+		BlendModeStorage.watchGameBlend(blendSelectsPass ? blendWatcher : null);
 
 		updateNotifier.onNewFrame();
 
@@ -1615,6 +1646,7 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 		}
 
 		beginPass(null);
+		BlendModeStorage.watchGameBlend(null);
 
 		isRenderingWorld = false;
 		phase = WorldRenderingPhase.NONE;

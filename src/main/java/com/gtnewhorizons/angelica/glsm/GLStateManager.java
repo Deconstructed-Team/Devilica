@@ -174,6 +174,11 @@ public final class GLStateManager {
         return new BlendState(blend.srcFactor, blend.dstFactor, blend.srcFactorAlpha, blend.dstFactorAlpha);
     }
 
+    public static boolean isBlendingAlpha() {
+        final GlStateManager.BlendState blend = GlStateManager.blendState;
+        return blend.blend.currentState && blend.srcFactor == GL11.GL_SRC_ALPHA && blend.dstFactor == GL11.GL_ONE_MINUS_SRC_ALPHA;
+    }
+
     /** After a per-draw-buffer blend toggle: vanilla's single flag stands for draw buffer 0. */
     public static void blendBufferToggled(int buffer, boolean enabled) {
         if (buffer == 0) {

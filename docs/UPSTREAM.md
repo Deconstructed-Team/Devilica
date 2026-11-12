@@ -116,6 +116,14 @@ packs' `#version 120` code runs as written, as it did in that Angelica.
   as before: their draws keep the pass they had (Celeritas's translucent shadow layer its program), where Angelica builds
   one from the fallback's source and sends lightning to `gbuffers_entities`. Translucent particles are vanilla's queue
   that leaves the depth buffer alone (`Particle.shouldDisableDepth`), not Angelica's split by particle; the death beams
-  are not drawn a second time for depth. Not carried over: `gbuffers_block_translucent`, which needs the pass matched
-  again on blend changes, and `gbuffers_terrain_cutout_mip`, which Angelica dropped.
+  are not drawn a second time for depth. Not carried over: `gbuffers_terrain_cutout_mip`, which Angelica dropped.
+- `gbuffers_entities_translucent` and `gbuffers_block_translucent` (the latter from newer Angelica). The base chose the
+  entity one by comparing the wrong blend factors and never looked again when blending changed, so it was never used.
+  Here both are for draws that blend with plain alpha in the second render pass of entities and block entities, the
+  one after water and so after the pack's deferred passes, which is where Iris draws what these programs are written
+  for (they fog themselves); in the first pass a blending draw keeps the opaque program. Angelica goes by blending
+  alone, in both passes. The pass is matched again before the next draw after the game changed its blending
+  (`BlendModeStorage.watchGameBlend`), not at every change, and only for a pack that ships one of the two programs.
+- From newer Angelica's `BlendModeStorage`: a program's own blend mode (`blend.<program>=`) holds until the program
+  goes; the base let the game's next blend change replace it at the following draw.
 - Later non-core Iris fixes from newer Angelica are to be carried over one by one.
