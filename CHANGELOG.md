@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.5 - 2026-11-12
+
+### Bug Fix
+
+- Shadow pass crash on a player's name tag after joining; no cascade *[commit by [@romanfedyniak](https://github.com/romanfedyniak) in [ac11345](https://github.com/Deconstructed-Team/Devilica/commit/ac1134574552a0a5a32ac01c459e833705da725a)]*
+- Lumenized's bloom tests against the game's depth texture *[commit by [@romanfedyniak](https://github.com/romanfedyniak) in [d5079b1](https://github.com/Deconstructed-Team/Devilica/commit/d5079b1a483956273e0c53a9f40977baf7c8e545)]*
+
+**Full Changelog**: https://github.com/Deconstructed-Team/Devilica/compare/0.1.4...0.1.5
+
 ## 0.1.4 - 2026-11-12
 
 ### Bug Fix
