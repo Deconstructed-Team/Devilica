@@ -103,7 +103,6 @@ public class ShadowRenderer {
 	private FrustumHolder terrainFrustumHolder;
 	private FrustumHolder entityFrustumHolder;
 	private int renderedShadowEntities = 0;
-	private int shadowFrame;
 	private int renderedShadowTileEntities = 0;
 	private Profiler profiler;
 	private final List<Entity> renderedEntitiesList = new ArrayList<>(64);
@@ -618,29 +617,32 @@ public class ShadowRenderer {
         GbufferPrograms.beginBlockEntities();
         GbufferPrograms.setBlockEntityDefaults();
         TileEntityRendererDispatcher.instance.preDrawBatch();
-        BlockEntityBatcher.begin();
         try {
-            for (TileEntity tileEntity : visibleTileEntities) {
-                if (hasEntityFrustum && isCulled(culler, tileEntity)) {
-                    continue;
-                }
-                renderTileEntity(tileEntity, cameraX, cameraY, cameraZ, partialTicks);
+            BlockEntityBatcher.begin();
+            try {
+                for (TileEntity tileEntity : visibleTileEntities) {
+                    if (hasEntityFrustum && isCulled(culler, tileEntity)) {
+                        continue;
+                    }
+                    renderTileEntity(tileEntity, cameraX, cameraY, cameraZ, partialTicks);
 
-                shadowTileEntities++;
-            }
-            for (TileEntity tileEntity : globalTileEntities) {
-                if (hasEntityFrustum && isCulled(culler, tileEntity)) {
-                    continue;
+                    shadowTileEntities++;
                 }
-                renderTileEntity(tileEntity, cameraX, cameraY, cameraZ, partialTicks);
+                for (TileEntity tileEntity : globalTileEntities) {
+                    if (hasEntityFrustum && isCulled(culler, tileEntity)) {
+                        continue;
+                    }
+                    renderTileEntity(tileEntity, cameraX, cameraY, cameraZ, partialTicks);
 
-                shadowTileEntities++;
+                    shadowTileEntities++;
+                }
+            } finally {
+                BlockEntityBatcher.end();
             }
+            TileEntityRendererDispatcher.instance.drawBatch(0);
         } finally {
-            BlockEntityBatcher.end();
+            GbufferPrograms.endBlockEntities();
         }
-        TileEntityRendererDispatcher.instance.drawBatch(0);
-        GbufferPrograms.endBlockEntities();
         GLStateManager.glPopMatrix();
 
 		renderedShadowTileEntities = shadowTileEntities;
@@ -656,6 +658,11 @@ public class ShadowRenderer {
 		} finally {
 			ACTIVE = false;
 			CURRENT_TARGETS = null;
+			CeleritasWorldRenderer.instance().setChunkRenderMatricesOverride(null, null);
+			// Only read inside the pass; left filled, they kept the last world's block entities, and with them the
+			// world, until the next shadow pass
+			visibleTileEntities.clear();
+			globalTileEntities.clear();
 		}
 	}
 
@@ -735,12 +742,15 @@ public class ShadowRenderer {
 		celeritas.setChunkRenderMatricesOverride(PROJECTION, MODELVIEW);
 		celeritas.getRenderSectionManager().markGraphDirty();
 
+		// The frame number the terrain pass is about to pass: a counter of the shadow pass alone ran far behind it, and a
+		// section manager made between the two passes (a render distance change) searched once with the high number,
+		// after which every build of the low ones was thrown away as stale and the world stayed empty
 		RenderDevice.enterManagedCode();
 		try {
 			celeritas.setupShadowTerrain(playerViewport,
 				((ViewportProvider) terrainFrustumHolder.getFrustum()).sodium$createViewport(),
 				CeleritasWorldRenderer.captureCameraState(playerCamera.getPartialTicks()),
-				shadowFrame++, GameModeUtil.isSpectator());
+				mc.entityRenderer.frameCount, GameModeUtil.isSpectator());
 		} finally {
 			RenderDevice.exitManagedCode();
 		}
