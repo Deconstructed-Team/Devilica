@@ -391,7 +391,7 @@ public class RenderSystem {
 	// TODO: Proper notification of compute support
 	public static boolean supportsCompute() {
         try {
-            return GLStateManager.capabilities.GL_ARB_compute_shader;
+            return GLStateManager.capabilities.GL_ARB_compute_shader || GLStateManager.capabilities.OpenGL43;
         } catch(Exception ignored) {
             return false;
         }
