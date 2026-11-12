@@ -158,4 +158,6 @@ packs' `#version 120` code runs as written, as it did in that Angelica.
   - `057ea803` (#1553): `cameraPositionInt` and `cameraPositionFract` and their previous values no longer allocate a
     vector per program each frame; the integer vector uniform copies the value it is handed. Angelica's own version
     hands back the current position as the previous one, which is not carried over.
+  - `8da561d3` (#1993): `ClearPassInformation` has a `hashCode`, so colour buffers with the same clear colour and size
+    are cleared together, one pass per group as the code intends; before, each buffer got passes of its own.
 - Later non-core Iris fixes from newer Angelica are to be carried over one by one.
