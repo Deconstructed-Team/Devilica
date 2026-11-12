@@ -100,13 +100,16 @@ public class AtlasPBRLoader implements PBRTextureLoader<TextureMap> {
         TextureAtlasSprite pbrSprite = null;
 
         try  {
-            // This is no longer closable. Not sure about this.
-            final IResource resource = resourceManager.getResource(pbrImageLocation);
-            NativeImage nativeImage = NativeImage.read(resource.getInputStream());
-            AnimationMetadataSection animationMetadata = (AnimationMetadataSection) resource.getMetadata("animation");
+            NativeImage nativeImage;
+            AnimationMetadataSection animationMetadata;
+            try (IResource resource = resourceManager.getResource(pbrImageLocation)) {
+                nativeImage = NativeImage.read(resource.getInputStream());
+                animationMetadata = (AnimationMetadataSection) resource.getMetadata("animation");
+            }
             if (animationMetadata == null) {
-                final IResource resourceOriginal = resourceManager.getResource(imageLocation);
-                animationMetadata = (AnimationMetadataSection) resourceOriginal.getMetadata("animation");
+                try (IResource resourceOriginal = resourceManager.getResource(imageLocation)) {
+                    animationMetadata = (AnimationMetadataSection) resourceOriginal.getMetadata("animation");
+                }
                 if (animationMetadata == null) {
                     animationMetadata = new AnimationMetadataSection(Lists.newArrayList(), -1, -1, -1, false);
                 }
