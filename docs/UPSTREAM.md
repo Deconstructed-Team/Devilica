@@ -131,4 +131,7 @@ packs' `#version 120` code runs as written, as it did in that Angelica.
   - `057ea803` (#1553), the one part that is not Distant Horizons: `const float shadowNearPlane` and `shadowFarPlane`
     set the planes of the shadow projection (0.05 and 256 without them, as before). A negative plane is the render
     distance, the game's own here.
+  - `1772e9ea` (#2300), the sampler overrides alone: a pack's texture put over a built-in sampler is bound with its own
+    texture type and without the built-in sampler's sampler object and notifier (`CustomTextureSamplerInterceptor`).
+    The rest of that commit is sampler objects for terrain and PBR mipmaps, which this base does not have.
 - Later non-core Iris fixes from newer Angelica are to be carried over one by one.
