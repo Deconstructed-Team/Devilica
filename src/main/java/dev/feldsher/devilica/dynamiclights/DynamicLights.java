@@ -112,6 +112,9 @@ public final class DynamicLights {
             tracker.luminance = 0;
             scheduleRebuild(tracker.litSections);
             reset(tracker);
+            // The rebuild reads the snapshot: without a fresh one before it (the slower modes skip frames), the
+            // sections were built with the light still there and kept it
+            lastUpdate = 0L;
         }
     }
 

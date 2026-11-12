@@ -16,8 +16,12 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/** Block entities with known models go to the batch instead of their renderer, inside a block entity pass. */
-@Mixin(TileEntityRendererDispatcher.class)
+/**
+ * Block entities with known models go to the batch instead of their renderer, inside a block entity pass. The high
+ * priority puts the hook after other mods' own at the head of the method: those that hide a block entity (an
+ * occlusion check, a hidden area) still do.
+ */
+@Mixin(value = TileEntityRendererDispatcher.class, priority = 1500)
 public abstract class TileEntityRendererDispatcherBatchMixin {
 
     // The world's block entities, before the lighting set up for each one

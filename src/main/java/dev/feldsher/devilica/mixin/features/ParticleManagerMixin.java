@@ -40,6 +40,10 @@ public abstract class ParticleManagerMixin {
 
     @Inject(method = "addEffect", at = @At("HEAD"), cancellable = true)
     private void devilica$particleSetting(Particle particle, CallbackInfo ci) {
+        if (particle == null) {
+            // Forge drops these itself, right after this hook
+            return;
+        }
         final DevilicaOptions.AnimationSettings settings = DevilicaOptions.get().animations;
         if (!settings.allParticles || !devilica$allowed(particle, settings) || !ParticleShares.spawns(particle, settings)) {
             ci.cancel();

@@ -32,12 +32,14 @@ public abstract class LumenizedDepthHookMixin {
         if (depthBuffer > -1) {
             return;
         }
-        int texture = ((IRenderTargetExt) Minecraft.getMinecraft().getFramebuffer()).iris$getDepthTextureId();
+        Framebuffer main = Minecraft.getMinecraft().getFramebuffer();
+        int texture = ((IRenderTargetExt) main).iris$getDepthTextureId();
         if (texture < 0) {
             return;
         }
         OpenGlHelper.glBindFramebuffer(OpenGlHelper.GL_FRAMEBUFFER, target.framebufferObject);
-        int attachment = target.isStencilEnabled() ? GL30.GL_DEPTH_STENCIL_ATTACHMENT : OpenGlHelper.GL_DEPTH_ATTACHMENT;
+        // By the texture's own format, which follows the main framebuffer's stencil
+        int attachment = main.isStencilEnabled() ? GL30.GL_DEPTH_STENCIL_ATTACHMENT : OpenGlHelper.GL_DEPTH_ATTACHMENT;
         OpenGlHelper.glFramebufferTexture2D(OpenGlHelper.GL_FRAMEBUFFER, attachment, GL11.GL_TEXTURE_2D, texture, 0);
         ci.cancel();
     }
