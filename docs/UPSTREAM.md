@@ -116,4 +116,7 @@ packs' `#version 120` code runs as written, as it did in that Angelica.
   - `ffb4ca94` (#1612): `atlasSize`, `gtextureSize` and `blendFunc` no longer allocate a vector on every texture bind
     and blend change; the integer vector uniforms copy the value they are handed. The suppliers' types stay as they
     were, Angelica's move to JOML's read-only interfaces is not carried over.
+  - `38b1d9a0` (#2190), the warm-up alone: the start no longer waits for the transform that loads the GLSL parser. Here
+    it runs after the version hoisting is set up and past both caches, so the parser is loaded whatever is on disk.
+    Not carried over: the index of PBR resources and the program set read ahead of the first world.
 - Later non-core Iris fixes from newer Angelica are to be carried over one by one.
