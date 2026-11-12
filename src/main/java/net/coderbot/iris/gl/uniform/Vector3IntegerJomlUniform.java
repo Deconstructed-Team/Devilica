@@ -9,6 +9,7 @@ import java.util.function.Supplier;
 public class Vector3IntegerJomlUniform extends Uniform {
     private final Vector3i cachedValue;
     private final Supplier<Vector3i> value;
+    private final Runnable updateListener = this::updateValue;
 
     Vector3IntegerJomlUniform(int location, Supplier<Vector3i> value) {
         this(location, value, null);
@@ -26,7 +27,7 @@ public class Vector3IntegerJomlUniform extends Uniform {
         updateValue();
 
         if (notifier != null) {
-            notifier.setListener(this::updateValue);
+            notifier.setListener(updateListener);
         }
     }
 

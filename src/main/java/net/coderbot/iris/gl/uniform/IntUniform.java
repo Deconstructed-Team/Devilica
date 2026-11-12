@@ -8,6 +8,7 @@ import java.util.function.IntSupplier;
 public class IntUniform extends Uniform {
 	private int cachedValue;
 	private final IntSupplier value;
+	private final Runnable updateListener = this::updateValue;
 
 	IntUniform(int location, IntSupplier value) {
 		this(location, value, null);
@@ -25,7 +26,7 @@ public class IntUniform extends Uniform {
 		updateValue();
 
 		if (notifier != null) {
-			notifier.setListener(this::updateValue);
+			notifier.setListener(updateListener);
 		}
 	}
 

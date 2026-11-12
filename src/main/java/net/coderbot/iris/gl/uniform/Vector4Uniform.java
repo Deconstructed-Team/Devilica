@@ -9,6 +9,7 @@ import java.util.function.Supplier;
 public class Vector4Uniform extends Uniform {
 	private final Vector4f cachedValue;
 	private final Supplier<Vector4f> value;
+	private final Runnable updateListener = this::updateValue;
 
 	Vector4Uniform(int location, Supplier<Vector4f> value) {
 		this(location, value, null);
@@ -26,7 +27,7 @@ public class Vector4Uniform extends Uniform {
 		updateValue();
 
 		if (notifier != null) {
-			notifier.setListener(this::updateValue);
+			notifier.setListener(updateListener);
 		}
 	}
 
