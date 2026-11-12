@@ -111,15 +111,23 @@ public class ShadowRenderer {
 	private final CelestialUniforms celestialUniforms;
 
 
-	private final AdvancedShadowCullingFrustum cachedAdvancedFrustum = new AdvancedShadowCullingFrustum();
 	private final Vector3f shadowLightVectorCache = new Vector3f();
-	private BoxCuller cachedBoxCuller;
-	private BoxCullingFrustum cachedBoxCullingFrustum;
-	private BoxCuller cachedAdvancedBoxCuller;
+	private final FrustumCaches terrainFrustumCaches = new FrustumCaches();
+	private final FrustumCaches entityFrustumCaches = new FrustumCaches();
 	private BoxCuller cachedTileEntityCuller;
-	private double lastBoxCullerDistance = -1;
-	private double lastAdvancedBoxCullerDistance = -1;
 	private double lastTileEntityCullerDistance = -1;
+
+	// Devilica: terrain and entities keep frustums of their own, as in newer Angelica. The shadow search still runs
+	// while entities draw and reads the terrain frustum; set up for entities, it culled at their far shorter distance,
+	// and casters dropped out of the shadow map for a frame now and then.
+	private static final class FrustumCaches {
+		final AdvancedShadowCullingFrustum advancedFrustum = new AdvancedShadowCullingFrustum();
+		BoxCuller boxCuller;
+		BoxCullingFrustum boxCullingFrustum;
+		BoxCuller advancedBoxCuller;
+		double boxCullerDistance = -1;
+		double advancedBoxCullerDistance = -1;
+	}
 
 	public ShadowRenderer(ProgramSource shadow, PackDirectives directives, ShadowRenderTargets shadowRenderTargets, ShadowCompositeRenderer compositeRenderer, Runnable rebindShadowProgram) {
 
@@ -296,7 +304,7 @@ public class ShadowRenderer {
 		RenderSystem.texParameteri(texture, GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, filteringMode);
 	}
 
-	private FrustumHolder createShadowFrustum(float renderMultiplier, FrustumHolder holder) {
+	private FrustumHolder createShadowFrustum(float renderMultiplier, FrustumHolder holder, FrustumCaches caches) {
 		// TODO: Cull entities / block entities with Advanced Frustum Culling even if voxelization is detected.
 		String distanceInfo;
 		String cullingInfo;
@@ -319,7 +327,7 @@ public class ShadowRenderer {
 			} else {
 				distanceInfo = distance + " blocks (set by shader pack)";
 				cullingInfo = "distance only " + reason;
-				holder.setInfo(getOrCreateBoxCullingFrustum(distance), distanceInfo, cullingInfo);
+				holder.setInfo(getOrCreateBoxCullingFrustum(caches, distance), distanceInfo, cullingInfo);
 			}
 		} else {
 			BoxCuller boxCuller;
@@ -349,7 +357,7 @@ public class ShadowRenderer {
 					return holder.setInfo(CULL_EVERYTHING_FRUSTUM, distanceInfo, cullingInfo);
 				}
 
-				boxCuller = getOrCreateAdvancedBoxCuller(distance);
+				boxCuller = getOrCreateAdvancedBoxCuller(caches, distance);
 			}
 
 			cullingInfo = (hasSafeZone ? "Safe Zone" : "Advanced") + " Frustum Culling enabled";
@@ -365,35 +373,35 @@ public class ShadowRenderer {
 					shadowLightVectorCache, boxCuller, distanceCuller);
 				return holder.setInfo(safeZoneFrustum, distanceInfo, cullingInfo);
 			} else {
-				cachedAdvancedFrustum.init(RenderingState.INSTANCE.getModelViewMatrix(), RenderingState.INSTANCE.getProjectionMatrix(), shadowLightVectorCache, boxCuller);
-				return holder.setInfo(cachedAdvancedFrustum, distanceInfo, cullingInfo);
+				caches.advancedFrustum.init(RenderingState.INSTANCE.getModelViewMatrix(), RenderingState.INSTANCE.getProjectionMatrix(), shadowLightVectorCache, boxCuller);
+				return holder.setInfo(caches.advancedFrustum, distanceInfo, cullingInfo);
 			}
 		}
 
 		return holder;
 	}
 
-	private BoxCullingFrustum getOrCreateBoxCullingFrustum(double distance) {
-		if (cachedBoxCuller == null) {
-			cachedBoxCuller = new BoxCuller(distance);
-			cachedBoxCullingFrustum = new BoxCullingFrustum(cachedBoxCuller);
-			lastBoxCullerDistance = distance;
-		} else if (lastBoxCullerDistance != distance) {
-			cachedBoxCuller.setMaxDistance(distance);
-			lastBoxCullerDistance = distance;
+	private static BoxCullingFrustum getOrCreateBoxCullingFrustum(FrustumCaches caches, double distance) {
+		if (caches.boxCuller == null) {
+			caches.boxCuller = new BoxCuller(distance);
+			caches.boxCullingFrustum = new BoxCullingFrustum(caches.boxCuller);
+			caches.boxCullerDistance = distance;
+		} else if (caches.boxCullerDistance != distance) {
+			caches.boxCuller.setMaxDistance(distance);
+			caches.boxCullerDistance = distance;
 		}
-		return cachedBoxCullingFrustum;
+		return caches.boxCullingFrustum;
 	}
 
-	private BoxCuller getOrCreateAdvancedBoxCuller(double distance) {
-		if (cachedAdvancedBoxCuller == null) {
-			cachedAdvancedBoxCuller = new BoxCuller(distance);
-			lastAdvancedBoxCullerDistance = distance;
-		} else if (lastAdvancedBoxCullerDistance != distance) {
-			cachedAdvancedBoxCuller.setMaxDistance(distance);
-			lastAdvancedBoxCullerDistance = distance;
+	private static BoxCuller getOrCreateAdvancedBoxCuller(FrustumCaches caches, double distance) {
+		if (caches.advancedBoxCuller == null) {
+			caches.advancedBoxCuller = new BoxCuller(distance);
+			caches.advancedBoxCullerDistance = distance;
+		} else if (caches.advancedBoxCullerDistance != distance) {
+			caches.advancedBoxCuller.setMaxDistance(distance);
+			caches.advancedBoxCullerDistance = distance;
 		}
-		return cachedAdvancedBoxCuller;
+		return caches.advancedBoxCuller;
 	}
 
 	private BoxCuller getOrCreateTileEntityCuller(double distance) {
@@ -683,7 +691,10 @@ public class ShadowRenderer {
 
 		profiler.startSection("initialize frustum");
 
-		terrainFrustumHolder = createShadowFrustum(renderDistanceMultiplier, terrainFrustumHolder);
+		// Devilica: the last frame's shadow search may still be reading the terrain frustum, which is set anew here
+		CeleritasWorldRenderer.instance().getRenderSectionManager().finishAllGraphUpdates();
+
+		terrainFrustumHolder = createShadowFrustum(renderDistanceMultiplier, terrainFrustumHolder, terrainFrustumCaches);
 
 		// Use the player/entity position for shadow rendering
 		final Vector3d entityPos = playerCamera.getEntityPos();
@@ -759,7 +770,7 @@ public class ShadowRenderer {
 			entityFrustumHolder.setInfo(terrainFrustumHolder.getFrustum(), terrainFrustumHolder.getDistanceInfo(), terrainFrustumHolder.getCullingInfo());
 		} else {
 			hasEntityFrustum = true;
-			entityFrustumHolder = createShadowFrustum(renderDistanceMultiplier * entityShadowDistanceMultiplier, entityFrustumHolder);
+			entityFrustumHolder = createShadowFrustum(renderDistanceMultiplier * entityShadowDistanceMultiplier, entityFrustumHolder, entityFrustumCaches);
 		}
 
 		final ICamera entityShadowFrustum = entityFrustumHolder.getFrustum();

@@ -55,5 +55,8 @@ packs' `#version 120` code runs as written, as it did in that Angelica.
 - Terrain: Iris's extended vertex is a 48-byte per-vertex `ChunkVertexLayout` on Celeritas's newer
   common; the block being meshed reaches the encoder through `BlockRenderContext.CURRENT`.
 - `AdvancedShadowCullingFrustum` is a `ShadowSearchFrustum`, as in newer Angelica, so the shadow pass
-  takes Celeritas's receiver-driven search; `SafeZoneCullingFrustum` opts out.
+  takes Celeritas's receiver-driven search; `SafeZoneCullingFrustum` opts out. As in newer Angelica, the
+  shadow pass joins the last frame's search before it sets the terrain frustum anew, and terrain and entities
+  keep frustums of their own (the entity one was set to the entity shadow distance while the search still
+  read it, and casters dropped out of the shadow map for a frame).
 - Later non-core Iris fixes from newer Angelica are to be carried over one by one.
