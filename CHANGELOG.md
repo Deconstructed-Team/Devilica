@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.4 - 2026-11-12
+
+### Bug Fix
+
+- Shadow casters no longer drop out of the shadow map for a frame *[commit by [@romanfedyniak](https://github.com/romanfedyniak) in [a262648](https://github.com/Deconstructed-Team/Devilica/commit/a262648e2e72f17ad3ffb95469e5482bce6b0657)]*
+
+**Full Changelog**: https://github.com/Deconstructed-Team/Devilica/compare/0.1.3...0.1.4
+
 ## 0.1.3 - 2026-11-11
 
 ### Bug Fix
