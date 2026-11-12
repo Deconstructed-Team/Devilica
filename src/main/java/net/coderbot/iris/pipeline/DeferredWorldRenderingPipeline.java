@@ -175,6 +175,7 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 	private final boolean shouldRenderPrepareBeforeShadow;
 	private final boolean oldLighting;
 	private final boolean allowConcurrentCompute;
+	private final boolean hasLightningProgram;
 	private final OptionalInt forcedShadowRenderDistanceChunks;
 
 	private Pass current = null;
@@ -254,6 +255,7 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 			.map(s -> s == net.coderbot.iris.shaderpack.ParticleRenderingSettings.BEFORE || s == net.coderbot.iris.shaderpack.ParticleRenderingSettings.MIXED)
 			.orElse(false);
 		this.allowConcurrentCompute = programs.getPackDirectives().getConcurrentCompute();
+		this.hasLightningProgram = programs.getGbuffersLightning().isPresent();
 		this.shouldRenderPrepareBeforeShadow = programs.getPackDirectives().isPrepareBeforeShadow();
 		this.oldLighting = programs.getPackDirectives().isOldLighting();
 		this.updateNotifier = new FrameUpdateNotifier();
@@ -404,6 +406,7 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 				null, null, ProgramId.Weather,
 				// world border uses textured_lit even though it has no lightmap :/
 				null, ProgramId.TexturedLit, ProgramId.TexturedLit,
+				ProgramId.Lightning, ProgramId.Lightning, ProgramId.Lightning,
 				ProgramId.ShadowWater, ProgramId.ShadowWater, ProgramId.ShadowWater,
 				ProgramId.Shadow, ProgramId.Shadow, ProgramId.Shadow
 		};
@@ -736,6 +739,11 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 				return RenderCondition.ENTITY_EYES;
 			} else if (special == SpecialCondition.GLINT) {
 				return RenderCondition.GLINT;
+			} else if (special == SpecialCondition.LIGHTNING && hasLightningProgram) {
+				// Devilica: only for a pack that ships gbuffers_lightning. Without it the bolt and the dragon's death
+				// beams keep the pass of their phase: the bolt is a weather effect, drawn outside the entity phase, so
+				// Angelica's fallback to gbuffers_entities would be a change for it
+				return RenderCondition.LIGHTNING;
 			}
 		}
 
@@ -784,7 +792,9 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 	 */
 	@Nullable
 	private static ProgramId ownProgramOrBefore(ProgramSet programs, @Nullable ProgramId id) {
-		if (id == ProgramId.ShadowWater && programs.getShadowWater().isEmpty()) {
+		if (id == ProgramId.Lightning && programs.getGbuffersLightning().isEmpty()) {
+			return null;
+		} else if (id == ProgramId.ShadowWater && programs.getShadowWater().isEmpty()) {
 			return ProgramId.Shadow;
 		}
 

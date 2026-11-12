@@ -163,6 +163,15 @@ public final class ShaderHooks {
         return previous;
     }
 
+    /**
+     * As {@link #setSpecialEntityId}, for an effect that drew under its entity's ID before packs could name it: only a
+     * pack that names it sees it, for the others nothing changes.
+     */
+    public static int setNamedEntityId(NamespacedId id) {
+        final Object2IntFunction<NamespacedId> ids = Iris.enabled ? BlockRenderingSettings.INSTANCE.getEntityIds() : null;
+        return ids != null && ids.containsKey(id) ? setSpecialEntityId(id) : NO_ID;
+    }
+
     public static void restoreEntityId(int previous) {
         if (previous != NO_ID) {
             CapturedRenderingState.INSTANCE.setCurrentEntity(previous);

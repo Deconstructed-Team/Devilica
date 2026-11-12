@@ -45,6 +45,7 @@ public class ProgramSet {
 	private final ProgramSource gbuffersEntities;
 	private final ProgramSource gbuffersEntitiesTrans;
 	private final ProgramSource gbuffersEntitiesGlowing;
+	private final ProgramSource gbuffersLightning;
 	private final ProgramSource gbuffersGlint;
 	private final ProgramSource gbuffersEntityEyes;
 	private final ProgramSource gbuffersBlock;
@@ -126,6 +127,7 @@ public class ProgramSet {
 		this.gbuffersEntities = readProgramSource(directory, sourceProvider, "gbuffers_entities", this, shaderProperties);
 		this.gbuffersEntitiesTrans = readProgramSource(directory, sourceProvider, "gbuffers_entities_translucent", this, shaderProperties);
 		this.gbuffersEntitiesGlowing = readProgramSource(directory, sourceProvider, "gbuffers_entities_glowing", this, shaderProperties);
+		this.gbuffersLightning = readProgramSource(directory, sourceProvider, "gbuffers_lightning", this, shaderProperties);
 		this.gbuffersGlint = readProgramSource(directory, sourceProvider, "gbuffers_armor_glint", this, shaderProperties);
 		this.gbuffersEntityEyes = readProgramSource(directory, sourceProvider, "gbuffers_spidereyes", this, shaderProperties);
 		this.gbuffersBlock = readProgramSource(directory, sourceProvider, "gbuffers_block", this, shaderProperties);
@@ -233,7 +235,7 @@ public class ProgramSet {
 				gbuffersBasic, gbuffersBeaconBeam, gbuffersTextured, gbuffersTexturedLit, gbuffersTerrain,
 				gbuffersTerrainSolid, gbuffersTerrainCutout,
 				gbuffersDamagedBlock, gbuffersSkyBasic, gbuffersSkyTextured, gbuffersClouds, gbuffersWeather,
-				gbuffersEntities, gbuffersEntitiesTrans, gbuffersEntitiesGlowing, gbuffersGlint, gbuffersEntityEyes, gbuffersBlock,
+				gbuffersEntities, gbuffersEntitiesTrans, gbuffersEntitiesGlowing, gbuffersLightning, gbuffersGlint, gbuffersEntityEyes, gbuffersBlock,
 				gbuffersHand
 		));
 
@@ -402,6 +404,10 @@ public class ProgramSet {
 		return gbuffersEntitiesGlowing.requireValid();
 	}
 
+	public Optional<ProgramSource> getGbuffersLightning() {
+		return gbuffersLightning.requireValid();
+	}
+
 	public Optional<ProgramSource> getGbuffersGlint() {
 		return gbuffersGlint.requireValid();
 	}
@@ -440,6 +446,7 @@ public class ProgramSet {
             case Entities -> getGbuffersEntities();
             case EntitiesTrans -> getGbuffersEntitiesTrans();
             case EntitiesGlowing -> getGbuffersEntitiesGlowing();
+            case Lightning -> getGbuffersLightning();
             case ArmorGlint -> getGbuffersGlint();
             case SpiderEyes -> getGbuffersEntityEyes();
             case Hand -> getGbuffersHand();
