@@ -740,7 +740,7 @@ public class ShadowRenderer {
 		playerFrustum.setPosition(entityX, entityY, entityZ);
 		final Viewport playerViewport = ((ViewportProvider) playerFrustum).sodium$createViewport();
 		celeritas.setChunkRenderMatricesOverride(PROJECTION, MODELVIEW);
-		celeritas.getRenderSectionManager().markGraphDirty();
+		celeritas.getRenderSectionManager().markShadowGraphDirty();
 
 		// The frame number the terrain pass is about to pass: a counter of the shadow pass alone ran far behind it, and a
 		// section manager made between the two passes (a render distance change) searched once with the high number,

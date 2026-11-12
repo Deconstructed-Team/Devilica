@@ -881,6 +881,20 @@ public abstract class RenderSectionManager {
         this.renderListManager.setNeedsUpdate(true);
     }
 
+    /**
+     * Devilica (as Celeritas's modern Iris does for its shadow pass): the light moved, the camera did not, so only
+     * the shadow list is searched anew. The camera's list still is when its last search left sections out of the
+     * build queue: nothing else would bring those up while no build result comes back.
+     */
+    public void markShadowGraphDirty() {
+        if (this.shadowRenderListManager != null) {
+            this.shadowRenderListManager.setNeedsUpdate(true);
+        }
+        if (this.renderListManager.getRebuildLists().hasAdditionalUpdates()) {
+            this.renderListManager.setNeedsUpdate(true);
+        }
+    }
+
     public void finishAllGraphUpdates() {
         this.renderListManager.finishPreviousGraphUpdate();
         if (this.shadowRenderListManager != null) {
