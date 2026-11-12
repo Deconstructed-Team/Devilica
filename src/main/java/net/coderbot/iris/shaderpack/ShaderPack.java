@@ -671,6 +671,18 @@ public class ShaderPack {
 
 		// First, try to find an exact match in the dimension map
 		String folderName = dimensionMap.get(dimensionName);
+
+		// Devilica: packs written for Iris name the vanilla dimensions by their ids; without this the wildcard
+		// below won, and the Nether and the End were drawn with the overworld's programs
+		if (folderName == null) {
+			final String vanillaId = "Overworld".equals(dimensionName) ? "minecraft:overworld"
+				: "Nether".equals(dimensionName) ? "minecraft:the_nether"
+				: "The End".equals(dimensionName) ? "minecraft:the_end"
+				: null;
+			if (vanillaId != null) {
+				folderName = dimensionMap.get(vanillaId);
+			}
+		}
 		boolean foundExactMatch = folderName != null;
 
 		// If no exact match, try wildcard
@@ -684,6 +696,10 @@ public class ShaderPack {
 			String worldFolder = "world" + dimensionId;
 			if (foldersWithShaderFiles.contains(worldFolder)) {
 				folderName = worldFolder;
+			} else if (foldersWithShaderFiles.contains("world0")) {
+				// Devilica (as newer Angelica): a mod's dimension the pack does not name is drawn as the overworld, not
+				// with the pack's base folder, which packs that keep everything under world0 leave empty
+				folderName = "world0";
 			}
 		}
 

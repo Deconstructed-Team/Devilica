@@ -58,9 +58,9 @@ public class ProgramUniforms {
 	private static long getCurrentTick() {
         final WorldClient world = Minecraft.getMinecraft().world;
 		if (world != null) {
-            return AngelicaConfig.useTotalWorldTime
-                ? world.getTotalWorldTime()
-                : world.getWorldTime();
+			// Devilica: the time of day stands still with doDaylightCycle off and in dimensions with a fixed time, and
+			// the uniforms updated once a tick (rain, biome, health) then never changed
+			return world.getTotalWorldTime();
 		} else {
 			return 0L;
 		}

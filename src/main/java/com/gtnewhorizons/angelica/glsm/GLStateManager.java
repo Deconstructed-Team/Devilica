@@ -174,9 +174,30 @@ public final class GLStateManager {
         return new BlendState(blend.srcFactor, blend.dstFactor, blend.srcFactorAlpha, blend.dstFactorAlpha);
     }
 
-    /** After a per-draw-buffer blend toggle, buffer 0's state is what vanilla's single flag means. */
-    public static void resyncBlendMode() {
-        GlStateManager.blendState.blend.currentState = GL11.glIsEnabled(GL11.GL_BLEND);
+    /** After a per-draw-buffer blend toggle: vanilla's single flag stands for draw buffer 0. */
+    public static void blendBufferToggled(int buffer, boolean enabled) {
+        if (buffer == 0) {
+            GlStateManager.blendState.blend.currentState = enabled;
+        }
+    }
+
+    /**
+     * Sets blending for every draw buffer, past vanilla's cache: after per-buffer toggles and functions the cache
+     * speaks for buffer 0 alone and would skip the call that puts the others back.
+     */
+    public static void forceBlend(boolean enabled, int srcRgb, int dstRgb, int srcAlpha, int dstAlpha) {
+        final GlStateManager.BlendState blend = GlStateManager.blendState;
+        if (enabled) {
+            GL11.glEnable(GL11.GL_BLEND);
+        } else {
+            GL11.glDisable(GL11.GL_BLEND);
+        }
+        blend.blend.currentState = enabled;
+        GL14.glBlendFuncSeparate(srcRgb, dstRgb, srcAlpha, dstAlpha);
+        blend.srcFactor = srcRgb;
+        blend.dstFactor = dstRgb;
+        blend.srcFactorAlpha = srcAlpha;
+        blend.dstFactorAlpha = dstAlpha;
     }
 
     public static void glColorMask(boolean red, boolean green, boolean blue, boolean alpha) {

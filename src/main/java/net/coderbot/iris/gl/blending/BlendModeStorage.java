@@ -30,11 +30,20 @@ public class BlendModeStorage {
             originalBlend.set(GLStateManager.getBlendState());
 		}
 
+		final boolean buffersTouched = bufferOverrideCount > 0;
 		bufferOverrideCount = 0;
 		hasDeferredChanges = false;
 		blendLocked = false;
 
-		if (override == null) {
+		if (buffersTouched) {
+			// Devilica: the last pass's per-buffer overrides end here, for every draw buffer
+			if (override == null) {
+				final BlendState current = GLStateManager.getBlendState();
+				GLStateManager.forceBlend(false, current.getSrcRgb(), current.getDstRgb(), current.getSrcAlpha(), current.getDstAlpha());
+			} else {
+				GLStateManager.forceBlend(true, override.getSrcRgb(), override.getDstRgb(), override.getSrcAlpha(), override.getDstAlpha());
+			}
+		} else if (override == null) {
             GLStateManager.disableBlend();
 		} else {
             GLStateManager.enableBlend();
@@ -84,14 +93,7 @@ public class BlendModeStorage {
 		hasDeferredChanges = false;
 		blendLocked = false;
 
-		if (originalBlendEnable) {
-			GLStateManager.enableBlend();
-		} else {
-			GLStateManager.disableBlend();
-		}
-		GLStateManager.tryBlendFuncSeparate(
-			originalBlend.getSrcRgb(), originalBlend.getDstRgb(),
-			originalBlend.getSrcAlpha(), originalBlend.getDstAlpha());
+		applyOriginal(bufferOverrideCount > 0);
 
 		blendLocked = true;
 
@@ -114,14 +116,25 @@ public class BlendModeStorage {
 
 		blendLocked = false;
 		hasDeferredChanges = false;
+		final boolean buffersTouched = bufferOverrideCount > 0;
 		bufferOverrideCount = 0;
 
-		if (originalBlendEnable) {
-            GLStateManager.enableBlend();
-		} else {
-            GLStateManager.disableBlend();
-		}
+		applyOriginal(buffersTouched);
+	}
 
-        GLStateManager.tryBlendFuncSeparate(originalBlend.getSrcRgb(), originalBlend.getDstRgb(), originalBlend.getSrcAlpha(), originalBlend.getDstAlpha());
+	// Devilica: the game's own blend state. After per-buffer overrides it is set for every draw buffer directly: the
+	// state cache speaks for buffer 0 alone, and a call it skipped left the other buffers with the override.
+	private static void applyOriginal(boolean buffersTouched) {
+		if (buffersTouched) {
+			GLStateManager.forceBlend(originalBlendEnable, originalBlend.getSrcRgb(), originalBlend.getDstRgb(),
+				originalBlend.getSrcAlpha(), originalBlend.getDstAlpha());
+			return;
+		}
+		if (originalBlendEnable) {
+			GLStateManager.enableBlend();
+		} else {
+			GLStateManager.disableBlend();
+		}
+		GLStateManager.tryBlendFuncSeparate(originalBlend.getSrcRgb(), originalBlend.getDstRgb(), originalBlend.getSrcAlpha(), originalBlend.getDstAlpha());
 	}
 }

@@ -102,13 +102,20 @@ public class IrisExclusiveUniforms {
 
 	private static Vector3d getEyePosition() {
         final Entity eye = Minecraft.getMinecraft().getRenderViewEntity();
-        return eyePositionCache.set(eye.posX, eye.posY + eye.getEyeHeight(), eye.posZ);
+        // Devilica: at the frame's moment, as cameraPosition is; the tick's position trailed it by a step
+        final double tickDelta = CapturedRenderingState.INSTANCE.getTickDelta();
+        return eyePositionCache.set(
+            eye.lastTickPosX + (eye.posX - eye.lastTickPosX) * tickDelta,
+            eye.lastTickPosY + (eye.posY - eye.lastTickPosY) * tickDelta + eye.getEyeHeight(),
+            eye.lastTickPosZ + (eye.posZ - eye.lastTickPosZ) * tickDelta);
 	}
 
 	private static Vector3d getRelativeEyePosition() {
 		final Vector3dc cameraPos = CameraUniforms.getUnshiftedCameraPosition();
 		final Vector3d eyePos = getEyePosition();
-		return relativeEyePositionCache.set(eyePos).sub(cameraPos);
+		// Devilica: Iris gives the camera as seen from the eye (packs add it to camera-relative positions); the base
+		// had the eye as seen from the camera, which on 1.12, with the camera at the feet, was off by twice the eye height
+		return relativeEyePositionCache.set(cameraPos).sub(eyePos);
 	}
 
 	private static Vector4f getLightningBoltPosition() {

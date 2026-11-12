@@ -341,12 +341,12 @@ public class RenderSystem {
 
 	public static void disableBufferBlend(int buffer) {
 		GL30.glDisablei(GL11.GL_BLEND, buffer);
-		GLStateManager.resyncBlendMode();
+		GLStateManager.blendBufferToggled(buffer, false);
 	}
 
 	public static void enableBufferBlend(int buffer) {
 		GL30.glEnablei(GL11.GL_BLEND, buffer);
-		GLStateManager.resyncBlendMode();
+		GLStateManager.blendBufferToggled(buffer, true);
 	}
 
 	public static void blendFuncSeparatei(int buffer, int srcRGB, int dstRGB, int srcAlpha, int dstAlpha) {

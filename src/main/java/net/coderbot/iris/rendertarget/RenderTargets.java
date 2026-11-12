@@ -121,7 +121,9 @@ public class RenderTargets {
 
     public boolean resizeIfNeeded(int newDepthBufferVersion, int newDepthTextureId, int newWidth, int newHeight, DepthBufferFormat newDepthFormat, PackDirectives packDirectives) {
         boolean recreateDepth = false;
-        if (cachedDepthBufferVersion != newDepthBufferVersion) {
+        // Devilica: also by the texture itself. With a render scale the pipeline is handed two framebuffers in turn
+        // (the window's and the scaled one), whose version counters can be equal
+        if (cachedDepthBufferVersion != newDepthBufferVersion || currentDepthTexture != newDepthTextureId) {
             recreateDepth = true;
             currentDepthTexture = newDepthTextureId;
             cachedDepthBufferVersion = newDepthBufferVersion;
