@@ -35,6 +35,9 @@ Changes against upstream:
   `SectionVisibilityBuilder` (with occluder boxes) in place of vanilla's `VisGraph`, and the frustum's
   viewport carries its view-projection matrix. In `common`, the option is
   `use_raster_occlusion_culling_v2`, on by default.
+- `RenderGlobalMixin` gives vanilla's idle `ChunkRenderDispatcher` one builder (it set aside 10 MB of buffers for
+  each, up to 30% of the heap). The chunk renderer keeps the shadow pass's cached batches under a view of its own
+  (`getRenderView`), as Celeritas's modern renderer does.
 
 ## Angelica Iris
 
@@ -62,4 +65,17 @@ packs' `#version 120` code runs as written, as it did in that Angelica.
 - The shadow pass sets up the entity and block entity view before it draws them (from newer Angelica; on the
   first frame in a world another player's name tag crashed), clears its flags in a `finally`, and a frame left
   unfinished by a crash is ended at the next `beginLevelRendering` instead of throwing on every frame after.
+- A frame that throws midway is dropped (`ShaderHooks.abandonFrame`, at the next world frame and on leaving a world):
+  the phase flags of `GbufferPrograms`, the pipeline's pass and its world/shadow flags, the hand and render scale flags.
+  Block entity phases end in a `finally`.
+- The shadow pass hands Celeritas the terrain pass's frame number (`EntityRenderer.frameCount`), not a counter of its
+  own: the section manager orders builds by it.
+- `PipelineManager` keeps the pipeline over a dimension change when the pack draws both dimensions with the same
+  program set. `ShaderPack` resolves the vanilla dimensions by their ids too (`minecraft:the_nether`, from newer
+  Angelica's dimension flattening) and draws dimensions the pack does not name with `world0` (newer Angelica, #2137).
+- Per-buffer blend overrides: no `glIsEnabled` after each toggle (the cached flag is draw buffer 0's), and the
+  game's blend state is put back for every draw buffer past vanilla's cache (the base's `setUnknownState`).
+- Uniforms updated once a tick go by the total world time; `relativeEyePosition` is the camera as seen from the eye,
+  the eye interpolated; `RenderTargets.resizeIfNeeded` re-attaches depth when the depth texture itself changed (render
+  scale hands it two framebuffers); the alpha test is back on after the final pass.
 - Later non-core Iris fixes from newer Angelica are to be carried over one by one.
