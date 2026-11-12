@@ -3,13 +3,14 @@ package net.coderbot.iris.block_rendering;
 import net.minecraft.util.BlockRenderLayer;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntFunction;
+import it.unimi.dsi.fastutil.objects.Reference2IntMap;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectMap;
-import it.unimi.dsi.fastutil.objects.ReferenceSet;
-import it.unimi.dsi.fastutil.objects.ReferenceSets;
+import it.unimi.dsi.fastutil.objects.Reference2ObjectMaps;
 import lombok.Getter;
 import lombok.Setter;
 import net.coderbot.iris.shaderpack.materialmap.NamespacedId;
 import net.minecraft.block.Block;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import org.jetbrains.annotations.Nullable;
 
@@ -28,10 +29,11 @@ public class BlockRenderingSettings {
 	private boolean disableDirectionalShading;
 	private boolean useSeparateAo;
 	private boolean useExtendedVertexFormat;
-	// Devilica: the blocks whose metadata key takes BlockMaterialMapping.SNOWY_META_BIT when snow lies on them
+	// Devilica: the blocks a pack tells apart by what only their actual state has (snow on grass, the plant in a pot),
+	// with the ID of each state; every other block goes by metadata
 	@Getter
 	@Setter
-	private ReferenceSet<Block> snowyBlocks = ReferenceSets.emptySet();
+	private Reference2ObjectMap<Block, Reference2IntMap<IBlockState>> blockStateMatches = Reference2ObjectMaps.emptyMap();
 
 	public BlockRenderingSettings() {
 		reloadRequired = false;

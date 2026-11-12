@@ -84,9 +84,15 @@ packs' `#version 120` code runs as written, as it did in that Angelica.
   Entity names get their 1.12.2 names, and the pre-1.11 ones `EntityIdHelper` looks up by, for such packs only.
   `LegacyIdMap` gives a pack without `block.properties` the block IDs as they are, OptiFine on 1.12.2 passes 16 bits.
   Not carried over: NBT matching (#1771, #2267; conditions are parsed and their entries skipped, Angelica matches them
-  in its chunk mesher, and 1.12.2 has states and entity types for what 1.7.10 keeps in NBT) and the lookups by actual
-  state: `snowy=true` entries wait under `SNOWY_META_BIT`, which the mesher does not set yet, and the top halves of
-  double plants and the contents of flower pots are matched by metadata, so every variant shares them.
+  in its chunk mesher, and 1.12.2 has states and entity types for what 1.7.10 keeps in NBT).
+- Block IDs by actual state. Part of a 1.12.2 block's state is not in its metadata: snow on grass, the plant of a double
+  plant's top half, what a flower pot holds, a door's other half. Where a pack's entries give such states different
+  IDs (`BlockMaterialMapping` keeps the ID of every state while it reads the entries), the chunk mesher asks the block
+  for its actual state and looks the ID up by it; every other block goes by metadata as before, and so does a held
+  block, whose metadata takes the ID of the state the metadata alone stands for. This replaces Angelica's
+  `SNOWY_META_BIT` and holds for packs with a 1.12 section too.
+- `block.properties` entries are matched in the file's order, the first one wins, as in OptiFine and Iris. The base
+  (and newer Angelica) keep the entries in a hash map, so an overlap went to whichever ID hashed first.
 - Per-buffer blend overrides: no `glIsEnabled` after each toggle (the cached flag is draw buffer 0's), and the
   game's blend state is put back for every draw buffer past vanilla's cache (the base's `setUnknownState`).
 - Uniforms updated once a tick go by the total world time; `relativeEyePosition` is the camera as seen from the eye,

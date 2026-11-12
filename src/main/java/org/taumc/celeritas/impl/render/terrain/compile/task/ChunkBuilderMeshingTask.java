@@ -163,7 +163,7 @@ public class ChunkBuilderMeshingTask extends ChunkBuilderTask<ChunkBuildOutput> 
                         // Devilica: the shader pack's vertex attributes need the block being meshed
                         if (shaders) {
                             final boolean fluid = blockState.getRenderType() == EnumBlockRenderType.LIQUID;
-                            irisBlock.setBlock(block, block.getMetaFromState(blockState), x & 15, y & 15, z & 15,
+                            irisBlock.setBlock(blockState, slice, blockPos,
                                 fluid ? ExtendedDataHelper.FLUID_RENDER_TYPE : ExtendedDataHelper.BLOCK_RENDER_TYPE,
                                 (byte) blockState.getLightValue(slice, blockPos));
                         }

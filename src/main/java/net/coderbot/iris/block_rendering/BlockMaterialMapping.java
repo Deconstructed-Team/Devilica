@@ -4,11 +4,11 @@ import net.minecraft.util.BlockRenderLayer;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.objects.Reference2IntMap;
+import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Reference2ReferenceOpenHashMap;
-import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet;
-import it.unimi.dsi.fastutil.objects.ReferenceSet;
 import net.coderbot.iris.shaderpack.materialmap.BlockEntry;
 import net.coderbot.iris.shaderpack.materialmap.BlockRenderType;
 import net.coderbot.iris.shaderpack.materialmap.FlatteningMap;
@@ -20,7 +20,6 @@ import net.minecraft.init.Blocks;
 import net.minecraft.util.ResourceLocation;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -28,31 +27,64 @@ import java.util.Set;
 
 public class BlockMaterialMapping {
 
-	// Meta-key bits OR'd in at runtime
-	// Devilica: nothing ORs it in yet. On 1.12.2 "snowy" is in the actual state only, which the chunk mesher does
-	// not pass to the block ID lookup, so the snow-covered entries of a modern pack wait under this bit.
-	public static final int SNOWY_META_BIT = 1 << 16;
-
 	/**
-	 * Creates a two-level map structure for block material IDs, and registers snowy blocks on
-	 * {@link BlockRenderingSettings}.
+	 * Creates a two-level map structure for block material IDs, and registers the blocks that go by their actual
+	 * state on {@link BlockRenderingSettings}.
 	 * Based on Iris's BlockState mapping approach adapted for 1.7.10's metadata system.
+	 * <p>
+	 * Devilica: entries are taken in the file's order and the first to match a block wins, as in OptiFine and Iris.
 	 */
 	public static Reference2ObjectMap<Block, Int2IntMap> createBlockMetaIdMap(Int2ObjectMap<List<BlockEntry>> blockPropertiesMap, boolean skipFlattening) {
 		final Reference2ObjectMap<Block, Int2IntMap> blockMatches = new Reference2ObjectOpenHashMap<>();
-		final ReferenceSet<Block> snowyBlocks = new ReferenceOpenHashSet<>();
+		final Reference2ObjectMap<Block, Reference2IntMap<IBlockState>> stateMatches = new Reference2ObjectOpenHashMap<>();
 
 		blockPropertiesMap.forEach((intId, entries) -> {
 			for (BlockEntry entry : entries) {
 				// Devilica: NBT conditions are read and not matched, Angelica matches them in its chunk mesher
 				if (!entry.hasNbtProperties()) {
-					addBlockMetas(entry, blockMatches, intId, skipFlattening, snowyBlocks);
+					addBlockMetas(entry, blockMatches, stateMatches, intId, skipFlattening);
 				}
 			}
 		});
 
-		BlockRenderingSettings.INSTANCE.setSnowyBlocks(snowyBlocks);
+		BlockRenderingSettings.INSTANCE.setBlockStateMatches(keepToldApartByActualState(blockMatches, stateMatches));
 		return blockMatches;
+	}
+
+	/**
+	 * Devilica: on 1.12.2 part of a block's state is not in its metadata: the snow on a grass block, the plant of a
+	 * double plant's top half, what a flower pot holds. A pack that gives such states different IDs has the block
+	 * looked up by its actual state in the chunk mesher; its metadata keeps the ID of the state the metadata alone
+	 * stands for, for where there is no world to ask (a held block).
+	 */
+	private static Reference2ObjectMap<Block, Reference2IntMap<IBlockState>> keepToldApartByActualState(
+			Reference2ObjectMap<Block, Int2IntMap> blockMatches, Reference2ObjectMap<Block, Reference2IntMap<IBlockState>> stateMatches) {
+		final Reference2ObjectMap<Block, Reference2IntMap<IBlockState>> toldApart = new Reference2ObjectOpenHashMap<>();
+		stateMatches.forEach((block, byState) -> {
+			final Int2IntMap byMeta = blockMatches.get(block);
+			if (byMeta == null) {
+				return;
+			}
+			boolean differs = false;
+			for (IBlockState state : block.getBlockState().getValidStates()) {
+				differs |= byState.getInt(state) != byMeta.get(block.getMetaFromState(state));
+			}
+			if (!differs) {
+				return;
+			}
+			toldApart.put(block, byState);
+			for (int meta : byMeta.keySet().toIntArray()) {
+				try {
+					final int id = byState.getInt(block.getStateFromMeta(meta));
+					if (id != -1) {
+						byMeta.put(meta, id);
+					}
+				} catch (RuntimeException e) {
+					// a metadata value the block has no state for keeps the ID it got
+				}
+			}
+		});
+		return toldApart;
 	}
 
 	public static Map<Block, BlockRenderLayer> createBlockTypeMap(Map<NamespacedId, BlockRenderType> blockPropertiesMap, boolean skipFlattening) {
@@ -97,14 +129,11 @@ public class BlockMaterialMapping {
 	 * Adds block+metadata combinations to the material ID map.
 	 * Based on Iris's addBlockStates method, adapted for 1.7.10 metadata system.
 	 */
-	private static void addBlockMetas(BlockEntry entry, Reference2ObjectMap<Block, Int2IntMap> idMap, int intId,
-									  boolean skipFlattening, ReferenceSet<Block> snowyBlocks) {
+	private static void addBlockMetas(BlockEntry entry, Reference2ObjectMap<Block, Int2IntMap> idMap,
+									  Reference2ObjectMap<Block, Reference2IntMap<IBlockState>> stateMatches, int intId,
+									  boolean skipFlattening) {
 		final NamespacedId id = entry.id();
-		// Devilica: a pack with a section for this version keeps OptiFine's reading of 1.12 block states, where
-		// "snowy" matches the metadata the block is stored as
-		final Set<String> snowy = skipFlattening ? null : entry.stateProperties().get("snowy");
-		final BlockEntry plain = snowy == null ? entry : new BlockEntry(id, entry.metas(), without(entry.stateProperties(), "snowy"));
-		final Map<String, Set<String>> stateProps = plain.stateProperties();
+		final Map<String, Set<String>> stateProps = entry.stateProperties();
 
 		// Vanilla modern names go through FlatteningMap; legacy-section packs and modded blocks
 		// resolve directly from the registry.
@@ -113,27 +142,53 @@ public class BlockMaterialMapping {
 		if (vanilla && (!stateProps.isEmpty() || entry.metas().isEmpty())) {
 			targets = FlatteningMap.toLegacy(id.getName(), stateProps);
 		}
-		if (targets == null) targets = List.of(plain);
+		if (targets == null) targets = List.of(entry);
 
 		for (BlockEntry target : targets) {
 			final Block block = resolveBlockOrNull(target.id());
 			if (block == null) continue;
 
+			// The IDs by state are kept from the block's first entry with state properties on
+			Reference2IntMap<IBlockState> byState = stateMatches.get(block);
+			final boolean everyState = target.metas().isEmpty() && target.stateProperties().isEmpty();
 			Set<Integer> metas = target.metas();
 			if (!target.stateProperties().isEmpty()) {
+				if (byState == null) {
+					byState = statesByMeta(block, idMap.get(block));
+					stateMatches.put(block, byState);
+				}
 				metas = new HashSet<>(metas);
-				if (!addStateMetas(block, target.stateProperties(), metas, vanilla)) {
+				if (!addStateMetas(block, target.stateProperties(), metas, vanilla, byState, intId)) {
 					continue;
 				}
 			}
 
-			if (snowy == null || snowy.contains("false")) applyMetas(block, metas, idMap, intId, 0);
-			if (snowy != null && snowy.contains("true")) applyMetas(block, metas, idMap, intId, SNOWY_META_BIT);
-			if (snowy != null) snowyBlocks.add(block);
+			if (byState != null) {
+				for (IBlockState state : block.getBlockState().getValidStates()) {
+					if (everyState || target.metas().contains(block.getMetaFromState(state))) {
+						byState.putIfAbsent(state, intId);
+					}
+				}
+			}
+			applyMetas(block, metas, idMap, intId);
 		}
 	}
 
-	private static void applyMetas(Block block, Set<Integer> metas, Reference2ObjectMap<Block, Int2IntMap> idMap, int intId, int extraBits) {
+	private static Reference2IntMap<IBlockState> statesByMeta(Block block, Int2IntMap byMeta) {
+		final Reference2IntMap<IBlockState> byState = new Reference2IntOpenHashMap<>();
+		byState.defaultReturnValue(-1);
+		if (byMeta != null) {
+			for (IBlockState state : block.getBlockState().getValidStates()) {
+				final int id = byMeta.get(block.getMetaFromState(state));
+				if (id != -1) {
+					byState.put(state, id);
+				}
+			}
+		}
+		return byState;
+	}
+
+	private static void applyMetas(Block block, Set<Integer> metas, Reference2ObjectMap<Block, Int2IntMap> idMap, int intId) {
 		Int2IntMap metaMap = idMap.get(block);
 		if (metaMap == null) {
 			metaMap = new Int2IntOpenHashMap();
@@ -143,10 +198,10 @@ public class BlockMaterialMapping {
 
 		if (metas.isEmpty()) {
 			// Add all metadata values (0-15) if there aren't any specific ones
-			for (int meta = 0; meta < 16; meta++) metaMap.putIfAbsent(meta | extraBits, intId);
+			for (int meta = 0; meta < 16; meta++) metaMap.putIfAbsent(meta, intId);
 		} else {
 			// Add only specific metadata values
-			for (int meta : metas) metaMap.putIfAbsent(meta | extraBits, intId);
+			for (int meta : metas) metaMap.putIfAbsent(meta, intId);
 		}
 	}
 
@@ -159,25 +214,21 @@ public class BlockMaterialMapping {
 		return block == Blocks.AIR ? null : block;
 	}
 
-	private static Map<String, Set<String>> without(Map<String, Set<String>> properties, String name) {
-		final Map<String, Set<String>> rest = new HashMap<>(properties);
-		rest.remove(name);
-		return rest;
-	}
-
 	/**
-	 * The metadata of every state of the block whose properties match, as OptiFine resolves block states on 1.12;
-	 * properties that only the actual state has (a grass block's snow) match the metadata it is stored as.
+	 * The metadata of every state of the block whose properties match, as OptiFine resolves block states on 1.12,
+	 * and the states themselves for {@link #keepToldApartByActualState}.
 	 *
 	 * @param modern whether the conditions are a modern pack's: properties the 1.12.2 block does not have are
 	 *               then left out, and nothing is waterlogged
 	 * @return whether any state matched
 	 */
-	private static boolean addStateMetas(Block block, Map<String, Set<String>> conditions, Set<Integer> metas, boolean modern) {
+	private static boolean addStateMetas(Block block, Map<String, Set<String>> conditions, Set<Integer> metas, boolean modern,
+										 Reference2IntMap<IBlockState> byState, int intId) {
 		boolean matched = false;
 		for (IBlockState state : block.getBlockState().getValidStates()) {
 			if (matches(state, conditions, modern)) {
 				metas.add(block.getMetaFromState(state));
+				byState.putIfAbsent(state, intId);
 				matched = true;
 			}
 		}
