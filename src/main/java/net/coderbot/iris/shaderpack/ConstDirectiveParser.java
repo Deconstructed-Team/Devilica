@@ -24,7 +24,7 @@ public class ConstDirectiveParser {
 	}
 
 	private static boolean isLineBreak(char c) {
-		return c == '\n' || c == '\r' || c == '\u000B' || c == '\f' || c == '\u0085' || c == ' ' || c == ' ';
+		return c == '\n' || c == '\r' || c == '\u000B' || c == '\f' || c == '\u0085' || c == '\u2028' || c == '\u2029';
 	}
 
 	public static Optional<ConstDirective> findDirectiveInLine(String line) {

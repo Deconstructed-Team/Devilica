@@ -77,7 +77,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
-import java.util.zip.ZipError;
 import java.util.zip.ZipException;
 
 public class Iris {
@@ -654,9 +653,6 @@ public class Iris {
                 try (Stream<Path> stream = Files.walk(root)) {
                     return stream.filter(Files::isDirectory).anyMatch(path -> path.endsWith("shaders"));
                 }
-            } catch (ZipError zipError) {
-                // Java 8 seems to throw a ZipError instead of a subclass of IOException
-                Iris.logger.warn("The ZIP at " + pack + " is corrupt");
             } catch (IOException ignored) {
                 // ignored, not a valid shader pack.
             }
