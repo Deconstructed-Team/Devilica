@@ -1,6 +1,7 @@
 package net.coderbot.iris;
 
 import com.google.common.base.Throwables;
+import dev.feldsher.devilica.zoom.Zoom;
 import dev.feldsher.devilica.Devilica;
 import com.gtnewhorizons.angelica.config.AngelicaConfig;
 import dev.feldsher.devilica.shaders.TransformDiskCache;
@@ -309,11 +310,11 @@ public class Iris {
             final Minecraft mc = Minecraft.getMinecraft();
             try {
                 reload();
-                if (mc.player != null) mc.player.sendMessage(new TextComponentString("Shaders Reloaded!"));
+                if (mc.player != null) mc.player.sendMessage(new TextComponentString(I18n.format("iris.shaders.reloaded")));
 
             } catch (Exception e) {
                 logger.error("Error while reloading Shaders for Iris!", e);
-                if (mc.player != null) mc.player.sendMessage(new TextComponentString( "Failed tgo reload shaders! Reason: " + Throwables.getRootCause(e).getMessage()));
+                if (mc.player != null) mc.player.sendMessage(new TextComponentString(I18n.format("iris.shaders.reloaded.failure", Throwables.getRootCause(e).getMessage())));
             }
         } else if (toggleShadersKeybind.isPressed()) {
             final Minecraft mc = Minecraft.getMinecraft();
@@ -322,7 +323,7 @@ public class Iris {
             } catch (Exception e) {
                 logger.error("Error while toggling shaders!", e);
 
-                if (mc.player != null) mc.player.sendMessage(new TextComponentString( "Failed tgo toggle shaders! Reason: " + Throwables.getRootCause(e).getMessage()));
+                if (mc.player != null) mc.player.sendMessage(new TextComponentString(I18n.format("iris.shaders.toggled.failure", Throwables.getRootCause(e).getMessage())));
                 setShadersDisabled();
                 fallback = true;
             }
@@ -878,9 +879,9 @@ public class Iris {
 
     public void fmlInitEvent() {
         IRIS_VERSION = Devilica.VERSION;
-        reloadKeybind = new KeyBinding("Reload Shaders", 0, "Iris Keybinds");
-        toggleShadersKeybind = new KeyBinding("Toggle Shaders", 0, "Iris Keybinds");
-        shaderpackScreenKeybind = new KeyBinding("Shaderpack Selection Screen", 0, "Iris Keybinds");
+        reloadKeybind = new KeyBinding("devilica.key.reload_shaders", 0, Zoom.KEY_CATEGORY);
+        toggleShadersKeybind = new KeyBinding("devilica.key.toggle_shaders", 0, Zoom.KEY_CATEGORY);
+        shaderpackScreenKeybind = new KeyBinding("devilica.key.shader_packs", 0, Zoom.KEY_CATEGORY);
 
         ClientRegistry.registerKeyBinding(reloadKeybind);
         ClientRegistry.registerKeyBinding(toggleShadersKeybind);

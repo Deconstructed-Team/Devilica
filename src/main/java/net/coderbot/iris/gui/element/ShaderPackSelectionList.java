@@ -10,6 +10,7 @@ import net.coderbot.iris.gui.element.shaderselection.TopButtonRowEntry;
 import net.coderbot.iris.gui.screen.ShaderPackScreen;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.resources.I18n;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -50,17 +51,12 @@ public class ShaderPackSelectionList extends IrisGuiSlot {
         } catch (Exception e) {
             Iris.logger.error("Error reading files while constructing selection UI", e);
 
-            // Not translating this since it's going to be seen very rarely,
-            // We're just trying to get more information on a seemingly untraceable bug:
-            // - https://github.com/IrisShaders/Iris/issues/785
             this.addLabelEntries(
                 "",
-                "There was an error reading your shaderpacks directory",
+                I18n.format("options.iris.shaderPackSelection.readError"),
                 "",
-                "Check your logs for more information.",
-                "Please file an issue report including a log file.",
-                "If you are able to identify the file causing this, please include it in your report as well.",
-                "Note that this might be an issue with folder permissions; ensure those are correct first."
+                I18n.format("options.iris.shaderPackSelection.readError.logs"),
+                I18n.format("options.iris.shaderPackSelection.readError.permissions")
             );
 
             return;
