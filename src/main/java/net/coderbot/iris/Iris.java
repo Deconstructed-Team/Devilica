@@ -19,8 +19,11 @@ import net.coderbot.iris.config.IrisConfig;
 import net.coderbot.iris.gl.shader.StandardMacros;
 import net.coderbot.iris.gui.screen.ShaderPackScreen;
 import net.coderbot.iris.pipeline.DeferredWorldRenderingPipeline;
+import net.coderbot.iris.pipeline.transform.Patch;
 import net.coderbot.iris.pipeline.transform.ShaderTransformer;
 import net.coderbot.iris.pipeline.transform.TransformPatcher;
+import net.coderbot.iris.pipeline.transform.parameter.AttributeParameters;
+import net.coderbot.iris.pipeline.transform.parameter.TextureStageParameters;
 import net.coderbot.iris.gbuffer_overrides.matching.InputAvailability;
 import net.coderbot.iris.pipeline.FixedFunctionWorldRenderingPipeline;
 import net.coderbot.iris.pipeline.PipelineManager;
@@ -33,6 +36,7 @@ import net.coderbot.iris.shaderpack.option.OptionSet;
 import net.coderbot.iris.shaderpack.option.Profile;
 import net.coderbot.iris.shaderpack.option.values.MutableOptionValues;
 import net.coderbot.iris.shaderpack.option.values.OptionValues;
+import net.coderbot.iris.shaderpack.texture.TextureStage;
 import net.coderbot.iris.block_context.BlockContextHolder;
 import net.coderbot.iris.texture.pbr.PBRTextureManager;
 import net.minecraft.block.Block;
@@ -197,19 +201,21 @@ public class Iris {
         }
 
         /**
-         * Warm up the threadpool by running a representative shader transformation.
+         * Warm up the threadpool by running a representative shader transformation. Nothing waits for it, and it goes
+         * past the caches, which would hand back an earlier run's result without loading the parser.
          */
         public static void warmup() {
             final String vertexShader = "#version 120\nvoid main() { gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex; }";
             final String fragmentShader = "#version 120\nvoid main() { gl_FragColor = vec4(1.0); }";
-            try {
-                submitTracked(() -> {
-                    TransformPatcher.patchComposite(vertexShader, null, fragmentShader);
-                    TransformPatcher.patchAttributes(vertexShader, null, fragmentShader, new InputAvailability(true, true));
-                }).get();
-            } catch (Exception e) {
+            submitTracked(() -> {
+                ShaderTransformer.transform(vertexShader, null, null, null, fragmentShader,
+                    new TextureStageParameters(Patch.COMPOSITE, TextureStage.COMPOSITE_AND_FINAL, null));
+                ShaderTransformer.transform(vertexShader, null, null, null, fragmentShader,
+                    new AttributeParameters(Patch.ATTRIBUTES, false, new InputAvailability(true, true)));
+            }).exceptionally(e -> {
                 logger.warn("Warmup failed", e);
-            }
+                return null;
+            });
         }
 
         public static <T> CompletableFuture<T> submitTracked(Supplier<T> supplier) {
@@ -375,11 +381,11 @@ public class Iris {
             IrisShaderProviderHolder.setProvider(new IrisCeleritasShaderProvider());
         }
 
-        // Warm up the threadpool so shader transformations are faster when we need them
-        ShaderTransformExecutor.warmup();
-
         // Initialize version hoisting pattern based on GL capabilities
         ShaderTransformer.init();
+
+        // Warm up the threadpool so shader transformations are faster when we need them
+        ShaderTransformExecutor.warmup();
         TransformDiskCache.init();
 
         PBRTextureManager.INSTANCE.init();

@@ -126,4 +126,26 @@ packs' `#version 120` code runs as written, as it did in that Angelica.
   (`BlendModeStorage.watchGameBlend`), not at every change, and only for a pack that ships one of the two programs.
 - From newer Angelica's `BlendModeStorage`: a program's own blend mode (`blend.<program>=`) holds until the program
   goes; the base let the game's next blend change replace it at the following draw.
+- Carried over from newer Angelica, second round:
+  - `ffb4ca94` (#1612): `atlasSize`, `gtextureSize` and `blendFunc` no longer allocate a vector on every texture bind
+    and blend change; the integer vector uniforms copy the value they are handed. The suppliers' types stay as they
+    were, Angelica's move to JOML's read-only interfaces is not carried over.
+  - `38b1d9a0` (#2190), the warm-up alone: the start no longer waits for the transform that loads the GLSL parser. Here
+    it runs after the version hoisting is set up and past both caches, so the parser is loaded whatever is on disk.
+    Not carried over: the index of PBR resources and the program set read ahead of the first world.
+  - `38af64f1` (#2213), two parts: the sources of a program set go through the preprocessor on the transform threads
+    while the set reads them (`ShaderPack.preprocessInParallel`; a source that fails is preprocessed again by the
+    reader, so errors surface where they did), and `ConstDirectiveParser` looks only at lines that have `const` in them.
+    Not carried over: the preprocessor's disk cache, files read in parallel, `IdMap` and the language map built in the
+    background, programs kept across pipelines (`RetainedPrograms`), the pack parsed ahead while shaders are off.
+  - `f78cfdd5` (#1828), the fixes of the shader menus: a pack's text with a percent sign in it is shown as written
+    (the game's `String.format` put "Format error: " in front), an option without a comment gets no comment box with
+    its key in it, the option widgets click, and a slider is applied only by the release of its own press. Not carried
+    over: the new look (value colours, scrolling titles), the debug and unknown-pack toggles, the 1.7.10 list fixes.
+  - `057ea803` (#1553), the one part that is not Distant Horizons: `const float shadowNearPlane` and `shadowFarPlane`
+    set the planes of the shadow projection (0.05 and 256 without them, as before). A negative plane is the render
+    distance, the game's own here.
+  - `1772e9ea` (#2300), the sampler overrides alone: a pack's texture put over a built-in sampler is bound with its own
+    texture type and without the built-in sampler's sampler object and notifier (`CustomTextureSamplerInterceptor`).
+    The rest of that commit is sampler objects for terrain and PBR mipmaps, which this base does not have.
 - Later non-core Iris fixes from newer Angelica are to be carried over one by one.

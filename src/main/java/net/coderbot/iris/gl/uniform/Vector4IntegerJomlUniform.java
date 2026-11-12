@@ -7,7 +7,7 @@ import org.joml.Vector4i;
 import java.util.function.Supplier;
 
 public class Vector4IntegerJomlUniform extends Uniform {
-	private Vector4i cachedValue;
+	private final Vector4i cachedValue;
 	private final Supplier<Vector4i> value;
 
 	Vector4IntegerJomlUniform(int location, Supplier<Vector4i> value) {
@@ -17,7 +17,7 @@ public class Vector4IntegerJomlUniform extends Uniform {
 	Vector4IntegerJomlUniform(int location, Supplier<Vector4i> value, ValueUpdateNotifier notifier) {
 		super(location, notifier);
 
-		this.cachedValue = null;
+		this.cachedValue = new Vector4i();
 		this.value = value;
 	}
 
@@ -33,9 +33,9 @@ public class Vector4IntegerJomlUniform extends Uniform {
 	private void updateValue() {
 		Vector4i newValue = value.get();
 
-		if (cachedValue == null || !newValue.equals(cachedValue)) {
-			cachedValue = newValue;
-			RenderSystem.uniform4i(this.location, newValue.x, newValue.y, newValue.z, newValue.w);
+		if (!newValue.equals(cachedValue)) {
+			cachedValue.set(newValue);
+			RenderSystem.uniform4i(this.location, cachedValue.x, cachedValue.y, cachedValue.z, cachedValue.w);
 		}
 	}
 }

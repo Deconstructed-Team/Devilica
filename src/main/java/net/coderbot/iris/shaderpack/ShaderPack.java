@@ -53,6 +53,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -77,6 +79,7 @@ public class ShaderPack {
 	private final Map<String, ProgramSet> dimensionProgramSets;
 	private final Set<String> foldersWithShaderFiles;
 	private final Function<AbsolutePackPath, String> sourceProvider;
+	private final ImmutableList<AbsolutePackPath> sourceFiles;
 	private final ShaderProperties shaderProperties;
 	private boolean hasLoggedCacheLimitReached = false;
 
@@ -194,7 +197,8 @@ public class ShaderPack {
 		}
 
 		// Read all files and included files recursively
-		IncludeGraph graph = new IncludeGraph(root, starts.build());
+		this.sourceFiles = starts.build();
+		IncludeGraph graph = new IncludeGraph(root, sourceFiles);
 
 		if (!graph.getFailures().isEmpty()) {
 			graph.getFailures().forEach((path, error) -> {
@@ -323,7 +327,8 @@ public class ShaderPack {
 			return source;
 		};
 
-		this.base = new ProgramSet(AbsolutePackPath.fromAbsolutePath("/"), sourceProvider, shaderProperties, this);
+		final AbsolutePackPath rootDirectory = AbsolutePackPath.fromAbsolutePath("/");
+		this.base = new ProgramSet(rootDirectory, preprocessInParallel(rootDirectory), shaderProperties, this);
 
 		this.idMap = new IdMap(root, shaderPackOptions, environmentDefines);
 
@@ -597,6 +602,33 @@ public class ShaderPack {
 	}
 
 	/**
+	 * Preprocesses the sources that sit right in the directory on the transform threads, while the program set reads
+	 * them one by one. A source that fails there is preprocessed again by the caller, which gets the failure as before.
+	 */
+	private Function<AbsolutePackPath, String> preprocessInParallel(AbsolutePackPath directory) {
+		final String directoryPath = directory.getPathString();
+		final String prefix = directoryPath.endsWith("/") ? directoryPath : directoryPath + "/";
+		final Map<AbsolutePackPath, CompletableFuture<String>> preprocessed = new HashMap<>();
+		for (AbsolutePackPath file : sourceFiles) {
+			final String path = file.getPathString();
+			if (path.startsWith(prefix) && path.indexOf('/', prefix.length()) < 0) {
+				preprocessed.put(file, Iris.ShaderTransformExecutor.submitTracked(() -> sourceProvider.apply(file)));
+			}
+		}
+		return path -> {
+			final CompletableFuture<String> source = preprocessed.get(path);
+			if (source != null) {
+				try {
+					return source.join();
+				} catch (CompletionException e) {
+					return sourceProvider.apply(path);
+				}
+			}
+			return sourceProvider.apply(path);
+		};
+	}
+
+	/**
 	 * Evicts the least recently used non-pinned dimension from the cache if it exceeds the size limit.
 	 * Pinned dimensions (Overworld, Nether, The End) are never evicted.
 	 * The LinkedHashMap maintains access order, so oldest entries are at the front.
@@ -713,12 +745,8 @@ public class ShaderPack {
 			if (programSet == null) {
 				// Create ProgramSet on-demand for dimension folder
 				try {
-					programSet = new ProgramSet(
-						AbsolutePackPath.fromAbsolutePath("/" + folderName),
-						sourceProvider,
-						shaderProperties,
-						this
-					);
+					final AbsolutePackPath directory = AbsolutePackPath.fromAbsolutePath("/" + folderName);
+					programSet = new ProgramSet(directory, preprocessInParallel(directory), shaderProperties, this);
 					dimensionProgramSets.put(folderName, programSet);
 
 					// Check cache size limit and evict LRU dimensions if needed

@@ -6,7 +6,6 @@ import net.coderbot.iris.gui.screen.ShaderPackScreen;
 import net.coderbot.iris.shaderpack.option.menu.OptionMenuLinkElement;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
-import net.minecraft.client.resources.I18n;
 
 import java.util.Optional;
 
@@ -79,7 +78,7 @@ public class LinkElementWidget extends CommentedElementWidget<OptionMenuLinkElem
 	@Override
 	public Optional<String> getCommentBody() {
 		final String translation = "screen." + this.targetScreenId + ".comment";
-        final String translated = I18n.format(translation);
-		return Optional.ofNullable(!translated.equals(translation) ? I18n.format(translation) : null);
+        final String translated = GuiUtil.translateLenient(translation);
+		return Optional.ofNullable(!translated.equals(translation) ? translated : null);
 	}
 }
