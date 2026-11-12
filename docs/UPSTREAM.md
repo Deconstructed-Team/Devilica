@@ -163,4 +163,7 @@ packs' `#version 120` code runs as written, as it did in that Angelica.
   - `8da561d3`: `gbufferPreviousModelView` and `gbufferPreviousProjection` are the last frame's for every program. Each
     program kept its own, so one not drawn every frame (entities, hand, weather) got the matrix of the last frame it
     drew in.
+  - `8da561d3`: a shadow pass that throws still pops its projection, binds the game's framebuffer back and turns
+    culling on again (`restoreGlState` from the pass's `finally`); the block entity pass pops its model-view matrix in
+    a `finally` too.
 - Later non-core Iris fixes from newer Angelica are to be carried over one by one.
