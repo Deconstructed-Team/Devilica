@@ -137,7 +137,13 @@ public class TransformPatcher {
         if (compute == null) {
             return null;
         }
-        Map<PatchShaderType, String> result = ShaderTransformer.transformCompute(compute, new ComputeParameters(Patch.COMPUTE, stage, textureMap));
+        final ComputeParameters parameters = new ComputeParameters(Patch.COMPUTE, stage, textureMap);
+        // Devilica: on disk as well; the source takes the vertex shader's place, the parameters' type keeps them apart
+        Map<PatchShaderType, String> result = TransformDiskCache.load(parameters, compute, null, null, null, null);
+        if (result == null) {
+            result = ShaderTransformer.transformCompute(compute, parameters);
+            TransformDiskCache.store(parameters, compute, null, null, null, null, result);
+        }
         return result != null ? result.get(PatchShaderType.COMPUTE) : null;
     }
 
