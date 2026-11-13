@@ -36,6 +36,18 @@ public interface WorldRenderingPipeline {
 	void setInputs(InputAvailability availability);
 	void setSpecialCondition(SpecialCondition special);
 	void setDeclaredTranslucency(@Nullable Boolean translucent);
+
+	/** Devilica: binds the current pass again after a program of someone else's replaced it. */
+	default void rebindPass() {
+	}
+
+	/** Devilica: another mod draws with its own programs from now on (see {@code ForeignPrograms}). */
+	default void beginForeignPrograms() {
+	}
+
+	/** Devilica: the pass is bound again, with the texture that is bound now. */
+	default void endForeignPrograms() {
+	}
 	RenderTargetStateListener getRenderTargetStateListener();
 
 	int getCurrentNormalTexture();

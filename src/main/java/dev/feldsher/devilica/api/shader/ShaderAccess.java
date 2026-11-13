@@ -44,10 +44,16 @@ public interface ShaderAccess {
 
     void restoreBlockEntityId(int previous);
 
+    /** What the pack sees as the block entity being drawn now. Since 1004. */
+    int currentBlockEntityId();
+
     /** What the pack sees as the entity being drawn; returns the ID to give back to {@link #restoreEntityId}. */
     int pushEntityId(int id);
 
     void restoreEntityId(int previous);
+
+    /** What the pack sees as the entity being drawn now. Since 1004. */
+    int currentEntityId();
 
     /** What the pack sees as the item being drawn; returns the ID to give back to {@link #restoreItemId}. */
     int pushItemId(int id);
@@ -63,6 +69,22 @@ public interface ShaderAccess {
     Object beginPhase(ShaderPhase phase);
 
     void endPhase(Object previous);
+
+    /**
+     * After draws with a program of your own while the world draws: binds the pack's program for what is being drawn
+     * again, with its framebuffer and its blend and alpha settings. Does nothing without a pack. Since 1004.
+     */
+    void rebindProgram();
+
+    /**
+     * Draws with programs of your own while the world draws (glows, effects): until {@link #endOwnPrograms}, the
+     * pack's program is not bound again on blend or texture changes, its uniforms are not written into your programs,
+     * and its blend and alpha locks are off. Nests. Since 1004.
+     */
+    void beginOwnPrograms();
+
+    /** Binds the pack's program for what is being drawn again, as {@link #rebindProgram} does. Since 1004. */
+    void endOwnPrograms();
 
     /** The generic vertex attribute a pack's program reads an extra input from */
     int attributeLocation(ShaderAttribute attribute);

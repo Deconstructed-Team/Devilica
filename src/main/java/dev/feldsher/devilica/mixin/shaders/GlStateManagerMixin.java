@@ -7,6 +7,7 @@ package dev.feldsher.devilica.mixin.shaders;
 
 import com.gtnewhorizons.angelica.glsm.GLStateManager;
 import com.gtnewhorizons.angelica.glsm.texture.TextureTracker;
+import dev.feldsher.devilica.shaders.ForeignPrograms;
 import net.coderbot.iris.Iris;
 import net.coderbot.iris.gbuffer_overrides.state.StateTracker;
 import net.coderbot.iris.gl.blending.AlphaTestStorage;
@@ -148,11 +149,11 @@ public abstract class GlStateManagerMixin {
     /**
      * After the bind reached GL (vanilla skips unchanged binds): the tracker rebinds through direct state access,
      * which GL rejects for a texture name that was never bound. Forge's splash thread binds too; only the render
-     * thread tells Iris.
+     * thread tells Iris, and not while another mod's own programs draw (its programs are bound, not the pack's).
      */
     @Inject(method = "bindTexture", at = @At(value = "INVOKE", target = "Lorg/lwjgl/opengl/GL11;glBindTexture(II)V", shift = At.Shift.AFTER, remap = false))
     private static void devilica$bindTexture(int texture, CallbackInfo ci) {
-        if (GLStateManager.isMainThread()) {
+        if (GLStateManager.isMainThread() && !ForeignPrograms.active()) {
             TextureTracker.INSTANCE.onBindTexture(texture);
             if (GLStateManager.getActiveTextureUnit() == 0) {
                 StateUpdateNotifiers.bindTextureNotifier.run();

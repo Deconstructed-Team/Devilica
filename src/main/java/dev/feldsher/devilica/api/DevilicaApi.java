@@ -26,7 +26,7 @@ import dev.feldsher.devilica.apiimpl.ShaderAccessImpl;
 public final class DevilicaApi {
 
     /** Major version times 1000 plus additions within it */
-    public static final int VERSION = 1003;
+    public static final int VERSION = 1004;
 
     private static final ShaderAccess SHADERS = new ShaderAccessImpl();
     private static final LightAccess LIGHTS = new LightAccessImpl();
@@ -56,5 +56,13 @@ public final class DevilicaApi {
     /** Calls the listener around every block entity pass of the camera from now on. Since 1001. */
     public static void addBlockEntityPassListener(BlockEntityPassListener listener) {
         BlockEntityPasses.add(listener);
+    }
+
+    /**
+     * Calls the listener around every block entity pass of the shader pack's shadow from now on, while the pack's
+     * shadow program is bound. Since 1004.
+     */
+    public static void addShadowBlockEntityPassListener(BlockEntityPassListener listener) {
+        BlockEntityPasses.addShadow(listener);
     }
 }

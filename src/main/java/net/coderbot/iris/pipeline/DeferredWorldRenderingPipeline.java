@@ -8,6 +8,7 @@ import com.gtnewhorizons.angelica.glsm.GLStateManager;
 import com.gtnewhorizons.angelica.glsm.RenderSystem;
 import com.gtnewhorizons.angelica.glsm.texture.TextureInfoCache;
 import com.gtnewhorizons.angelica.rendering.RenderingState;
+import dev.feldsher.devilica.shaders.ForeignPrograms;
 import it.unimi.dsi.fastutil.ints.Int2ObjectArrayMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
 import net.coderbot.iris.Iris;
@@ -858,7 +859,7 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 	private static final InputAvailability SHADOW_INPUTS = new InputAvailability(true, true);
 
 	private void matchPass() {
-		if (!isRenderingWorld || isRenderingFullScreenPass || isPostChain || !isMainBound) {
+		if (!isRenderingWorld || isRenderingFullScreenPass || isPostChain || !isMainBound || ForeignPrograms.active()) {
 			return;
 		}
 
@@ -867,9 +868,40 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 	}
 
 	/** Binds the matching pass again after a program of someone else's (Celeritas's terrain) replaced it */
-	private void rebindPass() {
+	@Override
+	public void rebindPass() {
+		if (!isRenderingWorld) {
+			return;
+		}
 		beginPass(null);
 		matchPass();
+	}
+
+	/**
+	 * Lifts the pass's blend and alpha locks for the other mod's draws; its program stays bound until the mod binds
+	 * its own, and the next pass binds in full.
+	 */
+	@Override
+	public void beginForeignPrograms() {
+		if (current != null) {
+			current.stopUsing();
+			current = null;
+		}
+	}
+
+	/** The texture binds made meanwhile told the pipeline nothing: the albedo texture is read back from GL. */
+	@Override
+	public void endForeignPrograms() {
+		if (!isRenderingWorld) {
+			return;
+		}
+		rebindPass();
+		final int unit = GL11.glGetInteger(GL13.GL_ACTIVE_TEXTURE);
+		GL13.glActiveTexture(GL13.GL_TEXTURE0);
+		final int albedo = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
+		GL13.glActiveTexture(unit);
+		onBindTexture(albedo);
+		StateUpdateNotifiers.bindTextureNotifier.run();
 	}
 
 	public void beginPass(Pass pass) {
@@ -1547,6 +1579,7 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 
 	@Override
 	public void abandonFrame() {
+		ForeignPrograms.reset();
 		if (isRenderingWorld) {
 			Iris.logger.warn("The last frame's level rendering did not finish; dropping its pass");
 		}
@@ -1565,6 +1598,7 @@ public class DeferredWorldRenderingPipeline implements WorldRenderingPipeline, R
 
 	@Override
 	public void beginLevelRendering() {
+		ForeignPrograms.reset();
 		isRenderingFullScreenPass = false;
 		isRenderingWorld = true;
 		isBeforeTranslucent = true;

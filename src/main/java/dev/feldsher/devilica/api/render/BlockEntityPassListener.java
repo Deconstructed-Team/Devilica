@@ -6,7 +6,8 @@
 package dev.feldsher.devilica.api.render;
 
 /**
- * Told when the world's block entities draw (the camera's pass, not the shadow pass), on the client thread. Everything
+ * Told when the world's block entities draw (the camera's pass, or the shadow pass for a listener added with
+ * {@link dev.feldsher.devilica.api.DevilicaApi#addShadowBlockEntityPassListener}), on the client thread. Everything
  * the block entity renderers draw happens between the two calls, Devilica's batched chests and signs last; a font mod
  * can hold the text drawn in between (sign text among it) and draw it all at {@link #end}.
  */

@@ -8,6 +8,7 @@ import com.gtnewhorizons.angelica.glsm.GLStateManager;
 import com.gtnewhorizons.angelica.glsm.RenderSystem;
 import com.gtnewhorizons.angelica.glsm.states.AlphaState;
 import com.gtnewhorizons.angelica.rendering.RenderingState;
+import dev.feldsher.devilica.apiimpl.BlockEntityPasses;
 import dev.feldsher.devilica.tesr.BlockEntityBatcher;
 import org.taumc.celeritas.impl.render.terrain.CeleritasWorldRenderer;
 import java.nio.FloatBuffer;
@@ -635,6 +636,7 @@ public class ShadowRenderer {
         GbufferPrograms.beginBlockEntities();
         GbufferPrograms.setBlockEntityDefaults();
         TileEntityRendererDispatcher.instance.preDrawBatch();
+        BlockEntityPasses.beginShadow();
         try {
             BlockEntityBatcher.begin();
             try {
@@ -659,6 +661,7 @@ public class ShadowRenderer {
             }
             TileEntityRendererDispatcher.instance.drawBatch(0);
         } finally {
+            BlockEntityPasses.endShadow();
             GbufferPrograms.endBlockEntities();
             GLStateManager.glPopMatrix();
         }

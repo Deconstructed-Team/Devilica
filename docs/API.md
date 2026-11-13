@@ -10,7 +10,7 @@ if (Loader.isModLoaded("devilica")) {
 }
 ```
 
-`DevilicaApi.VERSION` is the major version times 1000 plus additions within it (1003 now).
+`DevilicaApi.VERSION` is the major version times 1000 plus additions within it (1004 now).
 Within a major version nothing is removed or changed, only added.
 
 ## Shaders: `DevilicaApi.shaders()`
@@ -26,8 +26,16 @@ as it is; the pack reads position, colour, texture, lightmap and normal from it.
 - `pushBlockEntityId` / `restoreBlockEntityId`, and the same for entities and items: what the pack
   sees as the thing being drawn. Devilica sets them for the game's own block entities, entities
   and held items; a mod drawing something else sets them around its draws.
+  `currentBlockEntityId()` and `currentEntityId()` (1004) read them.
 - `beginPhase(ShaderPhase.ENTITIES | BLOCK_ENTITIES)` / `endPhase(token)`: the pack's programs for
   entities or block entities, for draws made outside the pass the game draws those in. Nests.
+- `rebindProgram()` (1004): after drawing with a program of your own while the world draws (an
+  effect, a glow), binds the pack's program for what is being drawn again, with its framebuffer
+  and its blend and alpha settings.
+- `beginOwnPrograms()` / `endOwnPrograms()` (1004): around draws with programs of your own while
+  the world draws. Meanwhile Devilica does not bind the pack's program on blend or texture changes,
+  does not write the pack's uniforms into your programs, and lifts the pack's blend and alpha
+  locks; at the end it binds the pack's program again. Nests.
 - `attributeLocation(ShaderAttribute)`: the generic vertex attributes for the extra inputs packs
   read (`mc_Entity`, `mc_midTexCoord`, `at_tangent`, `at_midBlock`). Devilica sets neutral values
   before each block entity and entity; set them per vertex with `glVertexAttribPointer` or per
@@ -77,8 +85,10 @@ light; the brightness stays the game's, and daylight washes the colour out. Colo
 
 ## Block entity pass: `DevilicaApi.addBlockEntityPassListener` (1001)
 
-`BlockEntityPassListener.begin()` and `end()` are called around the camera's block entity pass
-(not the shadow pass), on the client thread. Everything the block entity renderers draw happens in
+`BlockEntityPassListener.begin()` and `end()` are called around the camera's block entity pass,
+on the client thread. `addShadowBlockEntityPassListener` (1004) does the same for the shader
+pack's shadow pass, with the pack's shadow program bound: a mod that holds its block entity draws
+and draws them at `end()` gets them into the shadow map there. Everything the block entity renderers draw happens in
 between, Devilica's batched chests and signs last, sign text after the boards. A font mod can hold
 the text drawn in between and draw all of it at `end()`: Devilica draws sign text line by line
 through the game's `FontRenderer`, each line under its own GL matrix.

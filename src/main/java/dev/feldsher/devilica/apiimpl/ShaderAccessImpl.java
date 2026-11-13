@@ -8,6 +8,7 @@ package dev.feldsher.devilica.apiimpl;
 import dev.feldsher.devilica.api.shader.ShaderAccess;
 import dev.feldsher.devilica.api.shader.ShaderAttribute;
 import dev.feldsher.devilica.api.shader.ShaderPhase;
+import dev.feldsher.devilica.shaders.ForeignPrograms;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntFunction;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectMap;
@@ -78,6 +79,11 @@ public final class ShaderAccessImpl implements ShaderAccess {
     }
 
     @Override
+    public int currentBlockEntityId() {
+        return CapturedRenderingState.INSTANCE.getCurrentRenderedBlockEntity();
+    }
+
+    @Override
     public int pushEntityId(int id) {
         final int previous = CapturedRenderingState.INSTANCE.getCurrentRenderedEntity();
         CapturedRenderingState.INSTANCE.setCurrentEntity(id);
@@ -87,6 +93,11 @@ public final class ShaderAccessImpl implements ShaderAccess {
     @Override
     public void restoreEntityId(int previous) {
         CapturedRenderingState.INSTANCE.setCurrentEntity(previous);
+    }
+
+    @Override
+    public int currentEntityId() {
+        return CapturedRenderingState.INSTANCE.getCurrentRenderedEntity();
     }
 
     @Override
@@ -119,6 +130,24 @@ public final class ShaderAccessImpl implements ShaderAccess {
         if (pipeline != null && previous instanceof WorldRenderingPhase phase) {
             pipeline.setPhase(phase);
         }
+    }
+
+    @Override
+    public void rebindProgram() {
+        final WorldRenderingPipeline pipeline = isShaderPackActive() ? Iris.getPipelineManager().getPipelineNullable() : null;
+        if (pipeline != null) {
+            pipeline.rebindPass();
+        }
+    }
+
+    @Override
+    public void beginOwnPrograms() {
+        ForeignPrograms.begin();
+    }
+
+    @Override
+    public void endOwnPrograms() {
+        ForeignPrograms.end();
     }
 
     @Override
