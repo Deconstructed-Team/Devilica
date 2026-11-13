@@ -5,6 +5,7 @@ import com.gtnewhorizons.angelica.compat.mojang.NativeImage;
 import com.gtnewhorizons.angelica.glsm.texture.TextureInfo;
 import com.gtnewhorizons.angelica.glsm.texture.TextureInfoCache;
 import com.gtnewhorizons.angelica.mixins.interfaces.ISpriteExt;
+import lombok.Getter;
 import net.coderbot.iris.Iris;
 import net.coderbot.iris.texture.format.TextureFormat;
 import net.coderbot.iris.texture.format.TextureFormatLoader;
@@ -20,6 +21,7 @@ import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.resources.IResource;
 import net.minecraft.client.resources.IResourceManager;
+import net.minecraft.client.resources.data.AnimationFrame;
 import net.minecraft.client.resources.data.AnimationMetadataSection;
 import net.minecraft.util.ResourceLocation;
 import org.apache.commons.lang3.tuple.Pair;
@@ -160,7 +162,7 @@ public class AtlasPBRLoader implements PBRTextureLoader<TextureMap> {
 
             final int x = sprite.getOriginX();
             final int y = sprite.getOriginY();
-            pbrSprite = new PBRTextureAtlasSprite(pbrSpriteInfo, animationMetadata, atlasWidth, atlasHeight, x, y, nativeImage, texMap, mipLevel);
+            pbrSprite = new PBRTextureAtlasSprite(pbrSpriteInfo, animationMetadata, atlasWidth, atlasHeight, x, y, nativeImage, texMap, mipLevel, sprite);
             syncAnimation(sprite, pbrSprite);
         } catch (FileNotFoundException e) {
             //
@@ -220,18 +222,23 @@ public class AtlasPBRLoader implements PBRTextureLoader<TextureMap> {
 	}
 
     public static class PBRTextureAtlasSprite extends TextureAtlasSprite implements CustomMipmapGenerator.Provider {
+        /** The block atlas sprite this one is the normal or specular map of */
+        @Getter
+        private final TextureAtlasSprite baseSprite;
+
         // This feels super janky
-        protected PBRTextureAtlasSprite(TextureAtlasSpriteInfo info, AnimationMetadataSection animationMetaDataSection, int atlasWidth, int atlasHeight, int x, int y, NativeImage nativeImage, TextureMap texMap, int miplevel) {
+        protected PBRTextureAtlasSprite(TextureAtlasSpriteInfo info, AnimationMetadataSection animationMetaDataSection, int atlasWidth, int atlasHeight, int x, int y, NativeImage nativeImage, TextureMap texMap, int miplevel, TextureAtlasSprite baseSprite) {
             super(info.name().toString());
+            this.baseSprite = baseSprite;
             // Devilica: 1.12.2 sprites hold their pixels as frames x mip levels of ARGB ints
             final int width = info.width();
             final int height = info.height();
             this.setIconWidth(width);
             this.setIconHeight(height);
-            this.animationMetadata = animationMetaDataSection;
 
             final NativeImage[] mips = getMipmapGenerator(info, atlasWidth, atlasHeight).generateMipLevels(nativeImage, miplevel);
             final int frameCount = Math.max(1, nativeImage.getHeight() / height);
+            this.animationMetadata = animationFor(animationMetaDataSection, frameCount, width, height);
             final List<int[][]> frames = new ArrayList<>(frameCount);
             for (int frame = 0; frame < frameCount; frame++) {
                 final int[][] levels = new int[mips.length][];
@@ -246,6 +253,26 @@ public class AtlasPBRLoader implements PBRTextureLoader<TextureMap> {
             }
             this.setFramesTextureData(frames);
             super.initSprite(atlasWidth, atlasHeight, x, y, false);
+        }
+
+        /**
+         * Devilica: the animation as vanilla's own sprites load it. Metadata without a frame list plays the image's
+         * frames in order; an image of one frame is not animated. Both had an empty frame list here, and every tick
+         * of the atlas's animation threw on it.
+         */
+        @Nullable
+        private static AnimationMetadataSection animationFor(AnimationMetadataSection metadata, int frameCount, int width, int height) {
+            if (frameCount <= 1) {
+                return null;
+            }
+            if (metadata.getFrameCount() > 0) {
+                return metadata;
+            }
+            final List<AnimationFrame> order = new ArrayList<>(frameCount);
+            for (int frame = 0; frame < frameCount; frame++) {
+                order.add(new AnimationFrame(frame, -1));
+            }
+            return new AnimationMetadataSection(order, width, height, Math.max(1, metadata.getFrameTime()), metadata.isInterpolate());
         }
 
         @Override

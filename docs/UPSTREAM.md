@@ -173,4 +173,10 @@ packs' `#version 120` code runs as written, as it did in that Angelica.
     pushed generation in a map by pass, here it is on the pass's own entry.
   - `8da561d3`: uniforms and samplers that follow GL state hand their notifier one listener made with them, not a new
     method reference on every bind of their program.
+- Compute shaders go through the disk cache of transformed sources too (their source in the vertex shader's place).
+- Normal and specular maps animate in step with the block atlas sprite they belong to, and, with Animate Only Visible
+  Textures, only when it does (newer Angelica's `08aa3771` idea; here the base sprite's own answer is kept,
+  `SpriteExtension.celeritas$wasUpdated`). A PBR map's animation is built as vanilla builds its sprites': metadata
+  without a frame list plays the image's frames in order, a one-frame image is not animated. The base gave both an
+  empty frame list, and the first animation tick threw.
 - Later non-core Iris fixes from newer Angelica are to be carried over one by one.

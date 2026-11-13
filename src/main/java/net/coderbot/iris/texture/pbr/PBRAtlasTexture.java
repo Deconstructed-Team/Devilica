@@ -4,6 +4,7 @@ import com.gtnewhorizons.angelica.compat.mojang.AutoClosableAbstractTexture;
 import com.gtnewhorizons.angelica.config.AngelicaConfig;
 import lombok.Getter;
 import net.coderbot.iris.Iris;
+import net.coderbot.iris.texture.pbr.loader.AtlasPBRLoader.PBRTextureAtlasSprite;
 import net.coderbot.iris.texture.util.TextureExporter;
 import net.coderbot.iris.texture.util.TextureManipulationUtil;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
@@ -16,6 +17,8 @@ import net.minecraft.crash.CrashReportCategory;
 import net.minecraft.util.ReportedException;
 import net.minecraft.util.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
+import org.taumc.celeritas.CeleritasVintage;
+import org.taumc.celeritas.impl.extensions.SpriteExtension;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -110,7 +113,7 @@ public class PBRAtlasTexture extends AutoClosableAbstractTexture {
 
     protected void uploadSprite(TextureAtlasSprite sprite) {
 
-		if (sprite.animationMetadata.getFrameCount() > 1) {
+		if (sprite.animationMetadata != null && sprite.animationMetadata.getFrameCount() > 1) {
 			final AnimationMetadataSection metadata = sprite.animationMetadata;
 			final int frameCount = sprite.getFrameCount();
 			for (int frame = sprite.frameCounter; frame >= 0; frame--) {
@@ -126,7 +129,13 @@ public class PBRAtlasTexture extends AutoClosableAbstractTexture {
 
 	public void cycleAnimationFrames() {
 		bind();
+		final boolean onlyVisible = CeleritasVintage.options().performance.animateOnlyVisibleTextures;
 		for (TextureAtlasSprite sprite : animatedSprites) {
+			// Devilica: in step with the block atlas sprite it belongs to, which is left alone when nothing shows it
+			if (onlyVisible && sprite instanceof PBRTextureAtlasSprite pbr && pbr.getBaseSprite().hasAnimationMetadata()
+				&& !((SpriteExtension) pbr.getBaseSprite()).celeritas$wasUpdated()) {
+				continue;
+			}
             sprite.updateAnimation();
 		}
 	}

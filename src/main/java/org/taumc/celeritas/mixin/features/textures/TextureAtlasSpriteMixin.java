@@ -9,6 +9,7 @@ import org.taumc.celeritas.impl.extensions.SpriteExtension;
 @Mixin(TextureAtlasSprite.class)
 public abstract class TextureAtlasSpriteMixin implements SpriteExtension {
     private boolean celeritas$isActive = false;
+    private boolean celeritas$updated = false;
 
     @Override
     public void celeritas$markActive() {
@@ -17,12 +18,14 @@ public abstract class TextureAtlasSpriteMixin implements SpriteExtension {
 
     @Override
     public boolean celeritas$shouldUpdate() {
-        if (this.celeritas$isActive) {
-            this.celeritas$isActive = false;
-            return true;
-        } else {
-            return false;
-        }
+        this.celeritas$updated = this.celeritas$isActive;
+        this.celeritas$isActive = false;
+        return this.celeritas$updated;
+    }
+
+    @Override
+    public boolean celeritas$wasUpdated() {
+        return this.celeritas$updated;
     }
 
     @ModifyReturnValue(method = { "getMinU", "getInterpolatedU" }, at = @At("RETURN"))
