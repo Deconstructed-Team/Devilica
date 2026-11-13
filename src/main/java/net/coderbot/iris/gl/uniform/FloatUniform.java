@@ -6,6 +6,7 @@ import net.coderbot.iris.gl.state.ValueUpdateNotifier;
 public class FloatUniform extends Uniform {
 	private float cachedValue;
 	private final FloatSupplier value;
+	private final Runnable updateListener = this::updateValue;
 
 	FloatUniform(int location, FloatSupplier value) {
 		this(location, value, null);
@@ -23,7 +24,7 @@ public class FloatUniform extends Uniform {
 		updateValue();
 
 		if (notifier != null) {
-			notifier.setListener(this::updateValue);
+			notifier.setListener(updateListener);
 		}
 	}
 

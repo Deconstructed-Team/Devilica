@@ -116,6 +116,7 @@ public class ShadowRenderer {
 	private final FrustumCaches entityFrustumCaches = new FrustumCaches();
 	private BoxCuller cachedTileEntityCuller;
 	private double lastTileEntityCullerDistance = -1;
+	private boolean glStateSetUp;
 
 	// Devilica: terrain and entities keep frustums of their own, as in newer Angelica. The shadow search still runs
 	// while entities draw and reads the terrain frustum; set up for entities, it culled at their far shorter distance,
@@ -432,6 +433,7 @@ public class ShadowRenderer {
 
 		// Set up our projection matrix and load it into the legacy matrix stack
 		RenderSystem.setupProjectionMatrix(projMatrix);
+		glStateSetUp = true;
 
 		// Disable backface culling
 		// This partially works around an issue where if the front face of a mountain isn't visible, it casts no
@@ -444,6 +446,11 @@ public class ShadowRenderer {
 	}
 
 	private void restoreGlState() {
+		if (!glStateSetUp) {
+			return;
+		}
+		glStateSetUp = false;
+
 		// Restore backface culling
         GLStateManager.enableCull();
 
@@ -653,8 +660,8 @@ public class ShadowRenderer {
             TileEntityRendererDispatcher.instance.drawBatch(0);
         } finally {
             GbufferPrograms.endBlockEntities();
+            GLStateManager.glPopMatrix();
         }
-        GLStateManager.glPopMatrix();
 
 		renderedShadowTileEntities = shadowTileEntities;
 
@@ -667,6 +674,8 @@ public class ShadowRenderer {
 		try {
 			renderShadowPass(levelRenderer, playerCamera);
 		} finally {
+			// A pass that threw midway leaves the shadow projection pushed and the shadow framebuffer bound
+			restoreGlState();
 			ACTIVE = false;
 			CURRENT_TARGETS = null;
 			CeleritasWorldRenderer.instance().setChunkRenderMatricesOverride(null, null);

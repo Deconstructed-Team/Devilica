@@ -17,6 +17,8 @@ import static net.coderbot.iris.gl.uniform.UniformUpdateFrequency.PER_FRAME;
  */
 public class CameraUniforms {
 	private static final Minecraft client = Minecraft.getMinecraft();
+	private static final Vector3i floorScratch = new Vector3i();
+	private static final Vector3f fractScratch = new Vector3f();
 
 	private CameraUniforms() {
 	}
@@ -36,13 +38,13 @@ public class CameraUniforms {
 			.uniform3f(PER_FRAME, "previousCameraPositionFract", () -> fract(tracker.previousUnshifted));
 	}
 
-	// New objects each time: the uniforms keep the last one and compare against it.
+	// Shared scratch: the uniforms copy the value they are handed.
 	private static Vector3i floor(Vector3dc pos) {
-		return new Vector3i((int) Math.floor(pos.x()), (int) Math.floor(pos.y()), (int) Math.floor(pos.z()));
+		return floorScratch.set((int) Math.floor(pos.x()), (int) Math.floor(pos.y()), (int) Math.floor(pos.z()));
 	}
 
 	private static Vector3f fract(Vector3dc pos) {
-		return new Vector3f((float) (pos.x() - Math.floor(pos.x())), (float) (pos.y() - Math.floor(pos.y())), (float) (pos.z() - Math.floor(pos.z())));
+		return fractScratch.set((float) (pos.x() - Math.floor(pos.x())), (float) (pos.y() - Math.floor(pos.y())), (float) (pos.z() - Math.floor(pos.z())));
 	}
 
 	/** cameraPosition is at the view entity's feet on 1.12 */

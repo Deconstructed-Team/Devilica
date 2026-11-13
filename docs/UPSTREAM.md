@@ -153,4 +153,24 @@ packs' `#version 120` code runs as written, as it did in that Angelica.
   draws with here), and left the fourth set, a lightmap without a texture, to be transformed on the render thread while
   the passes were built. Small ones from newer Angelica: `NamespacedId` keeps its hash (`d876a203`), the unchanged-value
   returns of `BlendModeStorage`'s deferrals (`a07cecb8`). PBR image resources are closed after reading.
+- Carried over from newer Angelica, third round (the parts of large Distant Horizons, SDL and refactoring commits that
+  matter without them):
+  - `057ea803` (#1553): `cameraPositionInt` and `cameraPositionFract` and their previous values no longer allocate a
+    vector per program each frame; the integer vector uniform copies the value it is handed. Angelica's own version
+    hands back the current position as the previous one, which is not carried over.
+  - `8da561d3` (#1993): `ClearPassInformation` has a `hashCode`, so colour buffers with the same clear colour and size
+    are cleared together, one pass per group as the code intends; before, each buffer got passes of its own.
+  - `8da561d3`: `gbufferPreviousModelView` and `gbufferPreviousProjection` are the last frame's for every program. Each
+    program kept its own, so one not drawn every frame (entities, hand, weather) got the matrix of the last frame it
+    drew in.
+  - `8da561d3`: a shadow pass that throws still pops its projection, binds the game's framebuffer back and turns
+    culling on again (`restoreGlState` from the pass's `finally`); the block entity pass pops its model-view matrix in
+    a `finally` too.
+  - `8da561d3`: compute shaders count as supported on any OpenGL 4.3 context, not only where the driver lists
+    `GL_ARB_compute_shader`.
+  - `8da561d3`: a program's custom uniforms (`uniform.<type>.<name>`) are uploaded when their value changed since that
+    program last got them, once a frame at most; before, all of them on every bind of the program. Angelica keeps the
+    pushed generation in a map by pass, here it is on the pass's own entry.
+  - `8da561d3`: uniforms and samplers that follow GL state hand their notifier one listener made with them, not a new
+    method reference on every bind of their program.
 - Later non-core Iris fixes from newer Angelica are to be carried over one by one.
