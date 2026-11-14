@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.8 - 2026-11-14
+
+### Bug Fix
+
+- An id update no longer lands in another mod's bound program *[commit by [@romanfedyniak](https://github.com/romanfedyniak) in [796b428](https://github.com/Deconstructed-Team/Devilica/commit/796b428485bdb021d953de9f6e4433c492cb79a1)]*
+
+**Full Changelog**: https://github.com/Deconstructed-Team/Devilica/compare/0.1.7...0.1.8
+
 ## 0.1.7 - 2026-11-13
 
 ### Feature
