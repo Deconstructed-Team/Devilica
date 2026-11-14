@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.9 - 2026-11-14
+
+### Bug Fix
+
+- Translucent terrain writes depth for shader packs, water seen from below *[commit by [@romanfedyniak](https://github.com/romanfedyniak) in [67b393b](https://github.com/Deconstructed-Team/Devilica/commit/67b393b463b68797f13891edbf7c08d64178cfbd)]*
+
+**Full Changelog**: https://github.com/Deconstructed-Team/Devilica/compare/0.1.8...0.1.9
+
 ## 0.1.8 - 2026-11-14
 
 ### Bug Fix
