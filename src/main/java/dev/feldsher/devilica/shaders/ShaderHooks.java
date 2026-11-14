@@ -6,6 +6,7 @@
 package dev.feldsher.devilica.shaders;
 
 import com.gtnewhorizons.angelica.compat.mojang.Camera;
+import com.gtnewhorizons.angelica.glsm.GLStateManager;
 import it.unimi.dsi.fastutil.ints.Int2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntFunction;
 import it.unimi.dsi.fastutil.objects.Reference2ObjectMap;
@@ -21,6 +22,7 @@ import net.coderbot.iris.shadows.ShadowRenderingState;
 import net.coderbot.iris.uniforms.CapturedRenderingState;
 import net.coderbot.iris.uniforms.EntityIdHelper;
 import net.coderbot.iris.uniforms.ItemIdManager;
+import net.irisshaders.iris.api.v0.IrisApi;
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.Entity;
@@ -68,6 +70,11 @@ public final class ShaderHooks {
                 HandRenderer.INSTANCE.renderSolid(Camera.INSTANCE.getPartialTicks(), Camera.INSTANCE, Minecraft.getMinecraft().renderGlobal, pipeline);
                 pipeline.beginTranslucents();
                 pipeline.setPhase(WorldRenderingPhase.TERRAIN_TRANSLUCENT);
+                // 1.12.2 draws this layer without depth writes, newer versions with them, and a pack reads the water's
+                // depth from depthtex0: under water the surface took the sky's depth and was fogged away with it.
+                if (IrisApi.getInstance().isShaderPackInUse()) {
+                    GLStateManager.glDepthMask(true);
+                }
             }
         }
     }
