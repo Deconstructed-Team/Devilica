@@ -41,7 +41,8 @@
     "TextureMapMixin",
     "TileEntityBeaconRendererMixin",
     "TileEntityEndPortalRendererMixin",
-    "TileEntityRendererDispatcherMixin"
+    "TileEntityRendererDispatcherMixin",
+    "WorldVertexBufferUploaderNormalsMixin"
   ],
   "injectors": {
     "defaultRequire": 1
