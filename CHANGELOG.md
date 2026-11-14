@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.7 - 2026-11-13
+
+### Feature
+
+- API 1004 for mods drawing with their own programs *[commit by [@romanfedyniak](https://github.com/romanfedyniak) in [7b76077](https://github.com/Deconstructed-Team/Devilica/commit/7b76077d4a3eea58f24d7e378f75c30155fb80fa)]*
+
+**Full Changelog**: https://github.com/Deconstructed-Team/Devilica/compare/0.1.6...0.1.7
+
 ## 0.1.6 - 2026-11-13
 
 ### Feature
