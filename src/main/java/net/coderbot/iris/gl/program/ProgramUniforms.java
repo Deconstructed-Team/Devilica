@@ -13,6 +13,7 @@ import java.util.OptionalInt;
 import java.util.function.Supplier;
 
 import net.coderbot.iris.Iris;
+import net.coderbot.iris.gl.state.ProgramBoundNotifier;
 import net.coderbot.iris.gl.state.ValueUpdateNotifier;
 import net.coderbot.iris.gl.uniform.DynamicLocationalUniformHolder;
 import net.coderbot.iris.gl.uniform.Uniform;
@@ -279,6 +280,11 @@ public class ProgramUniforms {
 			notifiersToReset.add(notifier);
 
 			return this;
+		}
+
+		@Override
+		public ValueUpdateNotifier ownNotifier(ValueUpdateNotifier notifier) {
+			return new ProgramBoundNotifier(notifier, program);
 		}
 
         @Override

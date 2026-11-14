@@ -13,55 +13,60 @@ import java.util.function.Supplier;
 public interface DynamicLocationalUniformHolder extends LocationalUniformHolder, DynamicUniformHolder {
 	DynamicLocationalUniformHolder addDynamicUniform(Uniform uniform, ValueUpdateNotifier notifier);
 
+	/** The notifier a dynamic uniform of this holder listens through */
+	default ValueUpdateNotifier ownNotifier(ValueUpdateNotifier notifier) {
+		return notifier;
+	}
+
 	default DynamicLocationalUniformHolder uniform1f(String name, FloatSupplier value, ValueUpdateNotifier notifier) {
-		location(name, UniformType.FLOAT).ifPresent(id -> addDynamicUniform(new FloatUniform(id, value, notifier), notifier));
+		location(name, UniformType.FLOAT).ifPresent(id -> addDynamicUniform(new FloatUniform(id, value, ownNotifier(notifier)), notifier));
 
 		return this;
 	}
 
 	default DynamicLocationalUniformHolder uniform1f(String name, IntSupplier value, ValueUpdateNotifier notifier) {
-		location(name, UniformType.FLOAT).ifPresent(id -> addDynamicUniform(new FloatUniform(id, () -> (float) value.getAsInt(), notifier), notifier));
+		location(name, UniformType.FLOAT).ifPresent(id -> addDynamicUniform(new FloatUniform(id, () -> (float) value.getAsInt(), ownNotifier(notifier)), notifier));
 
 		return this;
 	}
 
 	default DynamicLocationalUniformHolder uniform1f(String name, DoubleSupplier value, ValueUpdateNotifier notifier) {
-		location(name, UniformType.FLOAT).ifPresent(id -> addDynamicUniform(new FloatUniform(id, () -> (float) value.getAsDouble(), notifier), notifier));
+		location(name, UniformType.FLOAT).ifPresent(id -> addDynamicUniform(new FloatUniform(id, () -> (float) value.getAsDouble(), ownNotifier(notifier)), notifier));
 
 		return this;
 	}
 
 	default DynamicLocationalUniformHolder uniform1i(String name, IntSupplier value, ValueUpdateNotifier notifier) {
-		location(name, UniformType.INT).ifPresent(id -> addDynamicUniform(new IntUniform(id, value, notifier), notifier));
+		location(name, UniformType.INT).ifPresent(id -> addDynamicUniform(new IntUniform(id, value, ownNotifier(notifier)), notifier));
 
 		return this;
 	}
 
 	default DynamicLocationalUniformHolder uniform2i(String name, Supplier<Vector2i> value, ValueUpdateNotifier notifier) {
-		location(name, UniformType.VEC2I).ifPresent(id -> addDynamicUniform(new Vector2IntegerJomlUniform(id, value, notifier), notifier));
+		location(name, UniformType.VEC2I).ifPresent(id -> addDynamicUniform(new Vector2IntegerJomlUniform(id, value, ownNotifier(notifier)), notifier));
 
 		return this;
 	}
 
     default DynamicUniformHolder uniform3i(String name, Supplier<Vector3i> value, ValueUpdateNotifier notifier) {
-        location(name, UniformType.VEC3I).ifPresent(id -> addDynamicUniform(new Vector3IntegerJomlUniform(id, value, notifier), notifier));
+        location(name, UniformType.VEC3I).ifPresent(id -> addDynamicUniform(new Vector3IntegerJomlUniform(id, value, ownNotifier(notifier)), notifier));
 
         return this;
     }
 
 	default DynamicUniformHolder uniform4f(String name, Supplier<Vector4f> value, ValueUpdateNotifier notifier) {
-		location(name, UniformType.VEC4).ifPresent(id -> addDynamicUniform(new Vector4Uniform(id, value, notifier), notifier));
+		location(name, UniformType.VEC4).ifPresent(id -> addDynamicUniform(new Vector4Uniform(id, value, ownNotifier(notifier)), notifier));
 
 		return this;
 	}
 
     default DynamicUniformHolder uniform4fArray(String name, Supplier<float[]> value, ValueUpdateNotifier notifier) {
-        location(name, UniformType.VEC4).ifPresent(id -> addDynamicUniform(new Vector4ArrayUniform(id, value, notifier), notifier));
+        location(name, UniformType.VEC4).ifPresent(id -> addDynamicUniform(new Vector4ArrayUniform(id, value, ownNotifier(notifier)), notifier));
         return this;
     }
 
 	default DynamicUniformHolder uniform4i(String name, Supplier<Vector4i> value, ValueUpdateNotifier notifier) {
-		location(name, UniformType.VEC4I).ifPresent(id -> addDynamicUniform(new Vector4IntegerJomlUniform(id, value, notifier), notifier));
+		location(name, UniformType.VEC4I).ifPresent(id -> addDynamicUniform(new Vector4IntegerJomlUniform(id, value, ownNotifier(notifier)), notifier));
 
 		return this;
 	}
