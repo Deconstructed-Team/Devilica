@@ -29,14 +29,21 @@ public abstract class EntityRendererDetailsMixin {
         return DevilicaOptions.get().details.fogStart / 100.0F;
     }
 
-    /** Only the land's fog branch posts this event; fog in water, lava and blindness stays. */
+    /**
+     * Only the land's fog branch posts this event; fog in water, lava and blindness stays. The sky's own fog
+     * (startCoords -1) stays too: it blends the sky disc into the clear colour, and without it the gap between
+     * the disc and the lower plane showed as a band of that colour, bright under night vision.
+     */
     @Inject(method = "setupFog", at = @At(value = "INVOKE", target = "Lnet/minecraftforge/client/ForgeHooksClient;onFogRender(Lnet/minecraft/client/renderer/EntityRenderer;Lnet/minecraft/entity/Entity;Lnet/minecraft/block/state/IBlockState;FIF)V", remap = false))
     private void devilica$noFog(int startCoords, float partialTicks, CallbackInfo ci) {
         final DevilicaOptions.DetailsSettings details = DevilicaOptions.get().details;
+        if (startCoords == -1) {
+            return;
+        }
         if (!details.fog) {
             GlStateManager.setFogStart(this.farPlaneDistance * 100.0F);
             GlStateManager.setFogEnd(this.farPlaneDistance * 101.0F);
-        } else if (details.fogDistance > 0 && startCoords != -1) {
+        } else if (details.fogDistance > 0) {
             final float end = details.fogDistance * 16.0F;
             GlStateManager.setFogStart(end * details.fogStart / 100.0F);
             GlStateManager.setFogEnd(end);
