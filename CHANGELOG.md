@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.10 - 2026-11-15
+
+### Bug Fix
+
+- Blocks drawn in the block format get normals for shader packs *[commit by [@romanfedyniak](https://github.com/romanfedyniak) in [d64b880](https://github.com/Deconstructed-Team/Devilica/commit/d64b880cd1d4be4857658d88cf66df9a3af37e43)]*
+
+**Full Changelog**: https://github.com/Deconstructed-Team/Devilica/compare/0.1.9...0.1.10
+
 ## 0.1.9 - 2026-11-14
 
 ### Bug Fix
