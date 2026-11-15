@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.11 - 2026-11-15
+
+### Bug Fix
+
+- Fog off keeps the sky's own fog, no bright band at the horizon *[commit by [@romanfedyniak](https://github.com/romanfedyniak) in [e6bddee](https://github.com/Deconstructed-Team/Devilica/commit/e6bddee74a10a03326adde8ce7a203bad6bd4e57)]*
+
+**Full Changelog**: https://github.com/Deconstructed-Team/Devilica/compare/0.1.10...0.1.11
+
 ## 0.1.10 - 2026-11-15
 
 ### Bug Fix
