@@ -4,6 +4,7 @@ import com.google.common.base.Throwables;
 import dev.feldsher.devilica.zoom.Zoom;
 import dev.feldsher.devilica.Devilica;
 import com.gtnewhorizons.angelica.config.AngelicaConfig;
+import dev.feldsher.devilica.shaders.EuphoriaPackSuccessor;
 import dev.feldsher.devilica.shaders.TransformDiskCache;
 import net.minecraftforge.fml.client.registry.ClientRegistry;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
@@ -63,7 +64,9 @@ import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -405,12 +408,17 @@ public class Iris {
         }
 
         // Devilica: the pack is loaded before mods are constructed, and a mod may only make it then (the Euphoria
-        // patcher writes its patched Complementary at construction), so a pack missing at start gets one more try
-        if (fallback && irisConfig.areShadersEnabled() && irisConfig.getShaderPackName().isPresent()
-            && Files.exists(getShaderpacksDirectory().resolve(irisConfig.getShaderPackName().get()))) {
-            logger.info("The shaderpack \"{}\" is there now, loading it", irisConfig.getShaderPackName().get());
-            fallback = false;
-            loadShaderpack();
+        // patcher writes its patched Complementary at construction), so a pack missing at start gets one more try.
+        // The patcher also renames the pack it replaces, so a pack loaded at start may be gone now: then its update
+        // is loaded instead.
+        if (irisConfig.areShadersEnabled() && irisConfig.getShaderPackName().isPresent()) {
+            final String chosen = irisConfig.getShaderPackName().get();
+            final String pack = followMissingPack(chosen);
+            if ((fallback || !pack.equals(chosen)) && Files.exists(getShaderpacksDirectory().resolve(pack))) {
+                logger.info("The shaderpack \"{}\" is there now, loading it", pack);
+                fallback = false;
+                loadShaderpack();
+            }
         }
 
         // Initialize the pipeline now so that we don't increase world loading time. Just going to guess that
@@ -460,11 +468,47 @@ public class Iris {
             return;
         }
 
-        if (!loadExternalShaderpack(externalName.get())) {
+        if (!loadExternalShaderpack(followMissingPack(externalName.get()))) {
             logger.warn("Falling back to normal rendering without shaders because the shaderpack could not be loaded");
             setShadersDisabled();
             fallback = true;
         }
+    }
+
+    /**
+     * The chosen pack itself while it is there. A Euphoria-patched Complementary that is gone (the patcher renamed
+     * it to "Outdated ..." when it was updated) is replaced by its newest successor, and the choice saved.
+     */
+    private static String followMissingPack(String name) {
+        final Path dir = getShaderpacksDirectory();
+        try {
+            if (Files.exists(dir.resolve(name))) {
+                return name;
+            }
+        } catch (InvalidPathException e) {
+            return name;
+        }
+
+        final List<String> packs = new ArrayList<>();
+        try (Stream<Path> list = Files.list(dir)) {
+            list.filter(Files::isDirectory).forEach(p -> packs.add(p.getFileName().toString()));
+        } catch (IOException e) {
+            return name;
+        }
+
+        final Optional<String> successor = EuphoriaPackSuccessor.of(name, packs);
+        if (!successor.isPresent()) {
+            return name;
+        }
+
+        logger.info("The shaderpack \"{}\" is gone, taking its update \"{}\"", name, successor.get());
+        irisConfig.setShaderPackName(successor.get());
+        try {
+            irisConfig.save();
+        } catch (IOException e) {
+            logger.warn("Could not save the new shaderpack choice", e);
+        }
+        return successor.get();
     }
 
     private static boolean loadExternalShaderpack(String name) {
