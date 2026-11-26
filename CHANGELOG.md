@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.12 - 2026-11-26
+
+### Bug Fix
+
+- A Euphoria update no longer leaves shaders off, its new pack is taken *[commit by [@romanfedyniak](https://github.com/romanfedyniak) in [bba8e2a](https://github.com/Deconstructed-Team/Devilica/commit/bba8e2a7d45ed81c263451fe88fef7de74112181)]*
+
+**Full Changelog**: https://github.com/Deconstructed-Team/Devilica/compare/0.1.11...0.1.12
+
 ## 0.1.11 - 2026-11-15
 
 ### Bug Fix
